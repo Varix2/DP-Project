@@ -48,8 +48,10 @@ class ManageDb implements Runnable{
 public class PrincipalServer implements Runnable {
 
     Socket s;
-    public PrincipalServer(Socket s){
+    String dbUrl;
+    public PrincipalServer(Socket s, String dbUrl){
         this.s = s;
+        this.dbUrl = dbUrl;
     }
 
 
@@ -57,25 +59,24 @@ public class PrincipalServer implements Runnable {
         int listeningPort;
         Socket toClient;
         Thread t, manageDb;
+        String dbUrl;
 
-        manageDb = new Thread(new ManageDb(args[1],"Jorge", 2),"Thread Db");
-        manageDb.start();
+        /*manageDb = new Thread(new ManageDb(args[1],"Jorge", 2),"Thread Db");
+        manageDb.start();*/
 
 
 
         listeningPort = Integer.parseInt(args[0]);
+        dbUrl = args[1];
 
         try(ServerSocket psSocket = new ServerSocket(listeningPort)){
             while(true){
                 toClient = psSocket.accept();
 
-                t = new Thread(new PrincipalServer(toClient), "Thread 1");
+                t = new Thread(new PrincipalServer(toClient,dbUrl), "Thread 1");
                 t.start();
-                t.join();
 
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -88,10 +89,15 @@ public class PrincipalServer implements Runnable {
             ObjectInputStream in = new ObjectInputStream(s.getInputStream())){
 
             receivedData = (ClientRegistryData) in.readObject();
+            System.out.println(receivedData.getName()+ receivedData.getId_number() + receivedData.getEmail() + receivedData.getPassword() + dbUrl);
+            //Insert the data from the client into the database
+            ManageDb(receivedData.getName(),receivedData.getId_number(),receivedData.getEmail(),receivedData.getPassword(),dbUrl);
 
-            System.out.println("Information arrive: " + receivedData);
+            System.out.println("Registration information arrive: " +
+                    receivedData.getId_number() + " / " + receivedData.getName() +
+                    " / " + receivedData.getEmail() + " / " + receivedData.getPassword());
 
-            out.writeObject("Some information to Client");
+            out.writeObject("You correctly registered");
             out.flush();
 
         } catch (IOException e) {
@@ -99,7 +105,30 @@ public class PrincipalServer implements Runnable {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        ;
+
 
     }
+
+    public void ManageDb(String name,int id, String email, String passwd, String dbUrl){
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+        System.out.println(dbAddress);
+        try(Connection conn = DriverManager.getConnection(dbAddress);
+            Statement stmt = conn.createStatement()){
+
+
+            String createEntryQuery = "INSERT OR REPLACE INTO Utilizador (IdNumber, Uname, Email, Password) VALUES " +
+                    "('" + id + "', '" + name + "', '" + email + "', '" + passwd + "');";
+
+
+
+            if(stmt.executeUpdate(createEntryQuery)<1){
+                System.out.println("Insertion failed");
+            }
+
+
+        } catch (SQLException e) {
+            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        }
+    }
+
 }

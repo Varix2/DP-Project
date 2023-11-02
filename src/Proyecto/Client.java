@@ -37,7 +37,7 @@ public class Client {
                 System.out.println("O servidor nao enviou qualquer respota antes de"
                         + " fechar aligacao TCP!");
             } else {
-                System.out.println("Hora indicada pelo servidor: " + response);
+                System.out.println(response);
             }
 
         } catch (Exception e) {
