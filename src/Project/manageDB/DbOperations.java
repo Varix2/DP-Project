@@ -1,9 +1,6 @@
 package Project.manageDB;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class DbOperations {
 
@@ -31,5 +28,30 @@ public class DbOperations {
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
+    }
+
+    public boolean authenticateUser(String email, String password) {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection conn = DriverManager.getConnection(dbAddress)) {
+            String selectUserQuery = "SELECT Email, Password FROM Utilizador WHERE Email = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(selectUserQuery)) {
+                pstmt.setString(1, email);
+                ResultSet resultSet = pstmt.executeQuery();
+
+                if (resultSet.next()) {
+                    String storedEmail = resultSet.getString("Email");
+                    String storedPassword = resultSet.getString("Password");
+                    // Compara el email y la contraseña proporcionados
+                    if (email.equals(storedEmail) && password.equals(storedPassword)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        }
+
+        return false;
     }
 }

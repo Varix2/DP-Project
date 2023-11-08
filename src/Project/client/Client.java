@@ -16,7 +16,8 @@ public class Client {
     public static void main(String[] args) throws IOException {
 
         String response;
-
+        ClientRegistryData cr;
+        ClientAuthenticationData ca;
 
         if (args.length != 2) {
             System.out.println("Sintaxe: java Client serverAddress serverTCPPort");
@@ -29,12 +30,15 @@ public class Client {
 
             socket.setSoTimeout(TIMEOUT * 1000);
 
-            ClientRegistryData cr = Menus.showRegistryMenu();
-
-            //Serializa a string TIME_REQUEST para o OutputStream associado a socket
-            oout.writeObject(cr);
-            oout.flush();
-
+            if(Menus.mainMenu() == 1){
+                cr = Menus.showRegistryMenu();
+                oout.writeObject(cr);
+                oout.flush();
+            } else{
+                ca = Menus.showLoginMenu();
+                oout.writeObject(ca);
+                oout.flush();
+            }
             //Deserializa a resposta recebida em socket
             response = (String) oin.readObject();
 

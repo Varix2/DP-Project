@@ -1,5 +1,6 @@
 package Project.client.ui;
 
+import Project.client.ClientAuthenticationData;
 import Project.client.ClientRegistryData;
 
 import java.io.BufferedReader;
@@ -46,5 +47,52 @@ public class Menus {
             e.printStackTrace();
         }
         return new ClientRegistryData(name,id,email, passwd);
+    }
+
+
+    public static int mainMenu(){
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            int option;
+
+                System.out.println("Main Menu");
+                System.out.println("1. Login");
+                System.out.println("2. Sign up");
+                System.out.println("3. Exit");
+            do {
+                System.out.println("----------------------------");
+                System.out.print("Choose an option: ");
+
+                option = Integer.parseInt(reader.readLine());
+
+                if (option < 1 || option > 3) {
+                    System.out.println("ENTER A VALID OPTION");
+                }
+            } while (option < 1 || option > 3);
+
+            if (option == 3) {
+                System.out.println("Saliendo del programa.");
+                System.exit(0);
+            }
+            return option;
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static ClientAuthenticationData showLoginMenu() {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            System.out.print("Email: ");
+            String email = reader.readLine();
+            System.out.print("Password: ");
+            String password = reader.readLine();
+
+            return new ClientAuthenticationData(email, password);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

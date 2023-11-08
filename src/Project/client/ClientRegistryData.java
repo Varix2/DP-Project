@@ -9,6 +9,7 @@ public class ClientRegistryData implements Serializable {
     private final String email;
     private final String password;
 
+
     public ClientRegistryData(String name, int id_number, String email, String password) {
         this.name = name;
         this.id_number = id_number;

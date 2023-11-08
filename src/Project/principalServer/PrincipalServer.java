@@ -1,5 +1,6 @@
 package Project.principalServer;
 
+import Project.client.ClientAuthenticationData;
 import Project.client.ClientRegistryData;
 import Project.manageDB.DbOperations;
 
@@ -50,52 +51,37 @@ public class PrincipalServer implements Runnable {
     @Override
     public void run() {
 
-        ClientRegistryData receivedData;
+        Object receivedMsg;
 
         try(ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(s.getInputStream())){
 
-            receivedData = (ClientRegistryData) in.readObject();
-            System.out.println(receivedData.getName()+ receivedData.getId_number() + receivedData.getEmail() + receivedData.getPassword() + dbUrl);
-            //Insert the data from the client in the database
-            dbOperations.insertNewUser(receivedData.getName(),receivedData.getId_number(),receivedData.getEmail(),receivedData.getPassword());
+            receivedMsg = in.readObject();
+            if(receivedMsg instanceof ClientRegistryData regisData){
+                System.out.println("Registration information arrive: " +
+                        regisData.getId_number() + " / " + regisData.getName() +
+                        " / " + regisData.getEmail() + " / " + regisData.getPassword());
 
-            System.out.println("Registration information arrive: " +
-                    receivedData.getId_number() + " / " + receivedData.getName() +
-                    " / " + receivedData.getEmail() + " / " + receivedData.getPassword());
-
-            out.writeObject("You correctly registered");
-            out.flush();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-
-    }
-
-    public void ManageDb(String name,int id, String email, String passwd, String dbUrl){
-        String dbAddress = "jdbc:sqlite:" + dbUrl;
-        System.out.println(dbAddress);
-        try(Connection conn = DriverManager.getConnection(dbAddress);
-            Statement stmt = conn.createStatement()){
-
-
-            String createEntryQuery = "INSERT OR REPLACE INTO Utilizador (IdNumber, Uname, Email, Password) VALUES " +
-                    "('" + id + "', '" + name + "', '" + email + "', '" + passwd + "');";
-
-
-
-            if(stmt.executeUpdate(createEntryQuery)<1){
-                System.out.println("Insertion failed");
+                //Insert the data from the client in the database
+                dbOperations.insertNewUser(regisData.getName(),regisData.getId_number(),regisData.getEmail(),regisData.getPassword());
+                out.writeObject("You correctly registered");
+                out.flush();
+            } else{
+                ClientAuthenticationData authData = (ClientAuthenticationData) receivedMsg;
+                System.out.println("Authentication information arrive: " +
+                        authData.getEmail() + " / " + authData.getPassword());
+                if (dbOperations.authenticateUser(authData.getEmail(), authData.getPassword())) {
+                    out.writeObject("You correctly authenticate");
+                } else {
+                    out.writeObject("Authentication failed");
+                }
+                out.flush();
             }
 
-
-        } catch (SQLException e) {
-            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
-    }
 
+
+    }
 }
