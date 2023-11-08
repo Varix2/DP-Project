@@ -1,13 +1,13 @@
-package Proyecto;
+package Project.client;
 
 import java.io.Serializable;
 
 public class ClientRegistryData implements Serializable {
 
-    private String name;
-    private int id_number;
-    private String email;
-    private String password;
+    private final String name;
+    private final int id_number;
+    private final String email;
+    private final String password;
 
     public ClientRegistryData(String name, int id_number, String email, String password) {
         this.name = name;
