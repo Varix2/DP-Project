@@ -7,14 +7,21 @@ import Project.manageDB.DbOperations;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class PrincipalServer implements Runnable {
+
+
 
     DbOperations dbOperations;
     Socket s;
@@ -28,18 +35,59 @@ public class PrincipalServer implements Runnable {
     }
 
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         int listeningPort;
         Socket toClient;
-        Thread t;
+        Thread t,mcThread;
         String dbUrl;
+        int registryPort;
+
+        if(args.length != 2){
+            System.out.println("Deve passar na linha de comando: "
+                    + "(0) um porto de escuta TCP, onde irá aguardar pela conexão de clientes "
+                    + "(1) o caminho da diretoria de armazenamento da sua base de dados SQLite"
+                    + "(2) o nome com o qual deve registar um serviço RMI"
+                    + "(3) o porto de escuta no qual deve lançar o registry local"
+            );
+            System.out.println();
+            return;
+        }
+
 
         listeningPort = Integer.parseInt(args[0]);
         dbUrl = args[1];
+        registryPort = 3;
+
+        /*
+            CREATION OF REGISTRY LOCAL
+         */
+        try{
+
+            System.out.println("Tentativa de lancamento do registry no porto " +
+                    registryPort + "...");
+
+            LocateRegistry.createRegistry(registryPort);
+
+            System.out.println("Registry lancado!");
+
+        }catch(RemoteException e){
+            System.out.println("Registry provavelmente ja' em execucao!");
+        }
+
+        /*
+            START MULTICAST SERVICE
+         */
+
+        mcThread = new Thread(new MulticastService("HEARTBEAT","1"));
+        mcThread.start();
+
 
         try(ServerSocket psSocket = new ServerSocket(listeningPort)){
             while(true){
+                System.out.println("ANTES DE ACEPTAR");
                 toClient = psSocket.accept();
+
+                System.out.println("Despues DE ACEPTAR");
 
                 t = new Thread(new PrincipalServer(toClient,dbUrl), "Thread 1");
                 t.start();
@@ -48,6 +96,7 @@ public class PrincipalServer implements Runnable {
         }
     }
 
+
     @Override
     public void run() {
 
@@ -55,6 +104,7 @@ public class PrincipalServer implements Runnable {
 
         try(ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(s.getInputStream())){
+
 
             receivedMsg = in.readObject();
             if(receivedMsg instanceof ClientRegistryData regisData){

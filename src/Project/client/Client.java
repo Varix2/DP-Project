@@ -28,8 +28,8 @@ public class Client {
              ObjectInputStream oin = new ObjectInputStream(socket.getInputStream());
              ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream())) {
 
-            socket.setSoTimeout(TIMEOUT * 1000);
 
+            socket.setSoTimeout(TIMEOUT * 1000);
             if(Menus.mainMenu() == 1){
                 cr = Menus.showRegistryMenu();
                 oout.writeObject(cr);
@@ -39,6 +39,7 @@ public class Client {
                 oout.writeObject(ca);
                 oout.flush();
             }
+
             //Deserializa a resposta recebida em socket
             response = (String) oin.readObject();
 
