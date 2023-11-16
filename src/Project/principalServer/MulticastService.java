@@ -1,34 +1,44 @@
 package Project.principalServer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.io.ObjectOutputStream;
+import java.net.*;
 
 public class MulticastService implements Runnable{
 
-    private final String MULTICAST_ADDRESS = "230.44.44.44";
-    private final int MULTICAST_PORT = 4444;
-    private String heartbeat;
-    private String dbVersion;
+    private final Heartbeat heartbeat;
+    MulticastSocket socket;
 
-    public MulticastService(String heartbeat, String dbVersion) {
+    public MulticastService(Heartbeat heartbeat){
         this.heartbeat = heartbeat;
-        this.dbVersion = dbVersion;
+        try {
+            socket = new MulticastSocket();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void run() {
+        DatagramPacket packet;
+        InetAddress multicastGroup;
+        String MULTICAST_ADDRESS = "230.44.44.44";
+        int MULTICAST_PORT = 4444;
+        try {
+
+            multicastGroup = InetAddress.getByName(MULTICAST_ADDRESS);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
         while(true) {
-            try (MulticastSocket socket = new MulticastSocket()) {
-                InetAddress multicastGroup = InetAddress.getByName(MULTICAST_ADDRESS);
-                DatagramPacket packet = new DatagramPacket(
-                        heartbeat.getBytes(),
-                        heartbeat.length(),
-                        multicastGroup,
-                        MULTICAST_PORT
-                );
+            //SERIALISATION
+            try(ByteArrayOutputStream buff = new ByteArrayOutputStream();
+                ObjectOutputStream out = new ObjectOutputStream(buff)) {
+
+                out.writeObject(heartbeat);
+
+                packet = new DatagramPacket(buff.toByteArray(), buff.size(), multicastGroup, MULTICAST_PORT);
                 socket.send(packet);
 
                 System.out.println("Heartbeat message sent.");

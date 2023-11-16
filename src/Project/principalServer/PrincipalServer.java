@@ -10,14 +10,6 @@ import java.io.ObjectOutputStream;
 import java.net.*;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class PrincipalServer implements Runnable {
 
@@ -35,14 +27,15 @@ public class PrincipalServer implements Runnable {
     }
 
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args){
         int listeningPort;
         Socket toClient;
         Thread t,mcThread;
         String dbUrl;
         int registryPort;
+        String servicioRMI;
 
-        if(args.length != 2){
+        if(args.length != 4){
             System.out.println("Deve passar na linha de comando: "
                     + "(0) um porto de escuta TCP, onde irá aguardar pela conexão de clientes "
                     + "(1) o caminho da diretoria de armazenamento da sua base de dados SQLite"
@@ -56,7 +49,8 @@ public class PrincipalServer implements Runnable {
 
         listeningPort = Integer.parseInt(args[0]);
         dbUrl = args[1];
-        registryPort = 3;
+        servicioRMI = args[2];
+        registryPort = Integer.parseInt(args[3]);
 
         /*
             CREATION OF REGISTRY LOCAL
@@ -78,25 +72,22 @@ public class PrincipalServer implements Runnable {
             START MULTICAST SERVICE
          */
 
-        mcThread = new Thread(new MulticastService("HEARTBEAT","1"));
+        mcThread = new Thread(new MulticastService(new Heartbeat(registryPort,servicioRMI,1)));
         mcThread.start();
 
 
         try(ServerSocket psSocket = new ServerSocket(listeningPort)){
-            while(true){
-                System.out.println("ANTES DE ACEPTAR");
+            while(true) {
                 toClient = psSocket.accept();
 
-                System.out.println("Despues DE ACEPTAR");
-
-                t = new Thread(new PrincipalServer(toClient,dbUrl), "Thread 1");
+                t = new Thread(new PrincipalServer(toClient, dbUrl), "Thread 1");
                 t.start();
 
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
-
-
     @Override
     public void run() {
 
