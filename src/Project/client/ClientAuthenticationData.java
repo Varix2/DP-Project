@@ -10,6 +10,7 @@ public class ClientAuthenticationData implements Serializable {
     public ClientAuthenticationData(String email, String password) {
         this.email = email;
         this.password = password;
+
     }
 
     public String getEmail() {
