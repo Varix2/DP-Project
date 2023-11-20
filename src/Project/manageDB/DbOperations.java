@@ -9,8 +9,9 @@ public class DbOperations {
         this.dbUrl = url;
     }
 
-    public void insertNewUser(String name,int id, String email, String passwd){
+    public int insertNewUser(String name,int id, String email, String passwd){
         String dbAddress = "jdbc:sqlite:" + dbUrl;
+        int insertState=-1;
         System.out.println(dbAddress);
 
         try(Connection conn = DriverManager.getConnection(dbAddress);
@@ -19,8 +20,8 @@ public class DbOperations {
             //IT IS BETTER TO USE SOMETHING CALL "preparedStatement" but I barely know how that works
             String createEntryQuery = "INSERT OR REPLACE INTO Utilizador (IdNumber, Uname, Email, Password) VALUES " +
                     "('" + id + "', '" + name + "', '" + email + "', '" + passwd + "');";
-
-            if(stmt.executeUpdate(createEntryQuery)<1){
+            insertState = stmt.executeUpdate(createEntryQuery);
+            if(insertState<1){
                 System.out.println("Insertion failed");
             }
 
@@ -28,6 +29,7 @@ public class DbOperations {
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
+        return insertState;
     }
 
     public boolean authenticateUser(String email, String password) {
