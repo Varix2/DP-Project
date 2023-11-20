@@ -43,6 +43,8 @@ public class Client {
             //Deserializa a resposta recebida em socket
             response = (String) oin.readObject();
 
+            new LoginForm(socket).setVisible(true);
+
             if (response == null) {
                 System.out.println("O servidor nao enviou qualquer respota antes de"
                         + " fechar aligacao TCP!");
