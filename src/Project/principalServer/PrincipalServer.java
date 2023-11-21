@@ -1,9 +1,8 @@
 package Project.principalServer;
 
-import Project.backupServer.BackupServer;
+
 import Project.backupServer.BackupServerInterface;
-import Project.client.ClientAuthenticationData;
-import Project.client.ClientRegistryData;
+
 import Project.manageDB.DbOperations;
 
 import java.io.*;

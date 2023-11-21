@@ -12,7 +12,6 @@ import java.net.Socket;
 public class TCPService implements Runnable{
 
     private Socket s;
-    private String dbUrl;
     private DbOperations dbOperations;
     public TCPService(Socket s, String dbUrl){
         this.s=s;

@@ -59,9 +59,7 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
 
             serverService.removeBackupServer(observer);
             UnicastRemoteObject.unexportObject(observer, true);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (NotBoundException e) {
+        } catch (IOException | NotBoundException e) {
             throw new RuntimeException(e);
         }
 
