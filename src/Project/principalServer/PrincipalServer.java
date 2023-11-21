@@ -11,12 +11,13 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PrincipalServer extends UnicastRemoteObject implements PrincipalServerInterface {
     private final String DBNAME = "javaProgramming.db";
-    DbOperations dbOperations;
+    //DbOperations dbOperations;
     Socket s;
     String dbUrl;
     final List<BackupServerInterface> backupServers;
@@ -159,7 +160,14 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
                     }
 
                     fileChunk = bos.toByteArray();
+
+                    //Database Version controller
+                    DbOperations versionUpdate = new DbOperations(dbUrl);
+                    versionUpdate.versionController();
+
+
                 }
+
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

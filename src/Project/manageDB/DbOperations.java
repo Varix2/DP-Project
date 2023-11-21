@@ -6,7 +6,7 @@ public class DbOperations {
 
     private static DbOperations dbInstance;
     private final String dbUrl;
-    private DbOperations(String url){
+    public DbOperations(String url){
         this.dbUrl = url;
     }
 
@@ -63,5 +63,32 @@ public class DbOperations {
         }
 
         return false;
+    }
+
+    public synchronized void versionController(){
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection conn = DriverManager.getConnection(dbAddress)){
+            String insertVersionQuery = "INSERT INTO your_table (column2) VALUES (strftime('%Y-%m-%d %H:%M:%S', 'now'))";
+            try (PreparedStatement preparedStatement = conn.prepareStatement(insertVersionQuery, Statement.RETURN_GENERATED_KEYS)){
+                int rowsAffected = preparedStatement.executeUpdate();
+
+                if (rowsAffected > 0){
+                    System.out.println("Rows inserted succefully.");
+
+                    try (var generatedKeys = preparedStatement.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int generatedId = generatedKeys.getInt(1);
+                            System.out.println("Generated ID of backup:" + generatedId);
+                        }
+                    }
+                } else {
+                    System.out.println("No ID generated for the backup.");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }
