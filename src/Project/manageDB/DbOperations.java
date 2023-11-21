@@ -4,12 +4,20 @@ import java.sql.*;
 
 public class DbOperations {
 
+    private static DbOperations dbInstance;
     private final String dbUrl;
-    public DbOperations(String url){
+    private DbOperations(String url){
         this.dbUrl = url;
     }
 
-    public int insertNewUser(String name,int id, String email, String passwd){
+    public static synchronized DbOperations getInstance(String url) {
+        if (dbInstance == null) {
+            dbInstance = new DbOperations(url);
+        }
+        return dbInstance;
+    }
+
+    public synchronized int insertNewUser(String name,int id, String email, String passwd){
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         int insertState=-1;
         System.out.println(dbAddress);
@@ -32,7 +40,7 @@ public class DbOperations {
         return insertState;
     }
 
-    public boolean authenticateUser(String email, String password) {
+    public synchronized boolean authenticateUser(String email, String password) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {

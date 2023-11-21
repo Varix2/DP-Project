@@ -3,9 +3,7 @@ package Project.backupServer;
 import Project.principalServer.Heartbeat;
 import Project.principalServer.PrincipalServerInterface;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.net.*;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -22,17 +20,36 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
     public static void main(String[] args) {
         Heartbeat heartbeat;
         PrincipalServerInterface serverService;
+        byte[] dbBackupFile;
+
+        String filePath;
+
+        /*
+            OPTAINING THE DATABASE BACKUP
+         */
+        try {
+            String objUrl = "rmi://localhost:4444/p1";
+            serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
+
+
+            String fileName = "backupFile.db";
+            File localDirectory = new File(args[0]);
+            filePath = new File(localDirectory.getPath()+File.separator+fileName).getCanonicalPath();
+            try(FileOutputStream fout = new FileOutputStream(filePath)/*...*/) {
+                System.out.println("BACKUP FILE " + filePath + " CREATED.");
+
+                dbBackupFile = serverService.transferDatabase();
+                fout.write(dbBackupFile);
+
+                System.out.println("BACKUP (" + fileName + ") TRANSFER COMPLETE.");
+            }
 
         /*
             RMI CALLBACK
          */
 
-        try {
-            String objUrl = "rmi://localhost:4444/p1";
-            serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
-
             BackupServer observer = new BackupServer();
-            System.out.println("Servicio serverBU creado y en ejecucion");
+            System.out.println("Servicio <<backupServer>> creado y en ejecucion");
 
             serverService.addBackupServer(new BackupServer());
 
@@ -48,6 +65,7 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
             throw new RuntimeException(e);
         }
 
+        //JUST A TEST TO KNOW IF IT WORKS
         try {
             serverService.pruebaRMI("OJSHKJHDKHDKKHDHKHDGHKDGHJD");
         } catch (RemoteException e) {

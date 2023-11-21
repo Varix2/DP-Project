@@ -6,9 +6,7 @@ import Project.client.ClientAuthenticationData;
 import Project.client.ClientRegistryData;
 import Project.manageDB.DbOperations;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.*;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -17,10 +15,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PrincipalServer extends UnicastRemoteObject implements Runnable,PrincipalServerInterface {
-
-
-
+public class PrincipalServer extends UnicastRemoteObject implements PrincipalServerInterface {
+    private final String DBNAME = "javaProgramming.db";
     DbOperations dbOperations;
     Socket s;
     String dbUrl;
@@ -28,22 +24,12 @@ public class PrincipalServer extends UnicastRemoteObject implements Runnable,Pri
 
     public PrincipalServer()throws RemoteException{
         this.backupServers = new ArrayList<>();
+
     }
-
-    public PrincipalServer(Socket s, String dbUrl) throws RemoteException {
-        this.s = s;
-        this.dbUrl = dbUrl;
-        this.dbOperations = new DbOperations(this.dbUrl);
-        backupServers = new ArrayList<>();
-    }
-
-
-
-
     public static void main(String[] args){
         int listeningPort;
         Socket toClient;
-        Thread t,mcThread;
+        Thread tcp,mcThread;
         String dbUrl;
         int registryPort;
         String servicioRMI;
@@ -63,7 +49,6 @@ public class PrincipalServer extends UnicastRemoteObject implements Runnable,Pri
 
         listeningPort = Integer.parseInt(args[0]);
         dbUrl = args[1];
-
         registryPort = Integer.parseInt(args[3]);
         servicioRMI ="rmi://localhost:" + registryPort + "/" + args[2];
 
@@ -88,10 +73,10 @@ public class PrincipalServer extends UnicastRemoteObject implements Runnable,Pri
          */
         try {
             PrincipalServer serverService = new PrincipalServer();
-            System.out.println("Servico serverService criado e em execucao...");
+            System.out.println("Servico <<serverService>> criado e em execucao...");
 
             Naming.bind(servicioRMI, serverService);
-            System.out.println(servicioRMI);
+
             System.out.println("Servico " + args[2] + " registado no registry...");
 
         }catch(RemoteException e){
@@ -109,55 +94,21 @@ public class PrincipalServer extends UnicastRemoteObject implements Runnable,Pri
         mcThread = new Thread(new MulticastService(new Heartbeat(registryPort,servicioRMI,1)));
         mcThread.start();
 
+        /*
+            ACCEPT CLIENT REQUEST
+         */
 
         try(ServerSocket psSocket = new ServerSocket(listeningPort)){
             while(true) {
                 toClient = psSocket.accept();
 
-                t = new Thread(new PrincipalServer(toClient, dbUrl), "Thread 1");
-                t.start();
+                tcp = new Thread(new TCPService(toClient, dbUrl), "Thread 1");
+                tcp.start();
 
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-    @Override
-    public void run() {
-
-        Object receivedMsg;
-
-        try(ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(s.getInputStream())){
-
-
-            receivedMsg = in.readObject();
-            if(receivedMsg instanceof ClientRegistryData regisData){
-                System.out.println("Registration information arrive: " +
-                        regisData.getId_number() + " / " + regisData.getName() +
-                        " / " + regisData.getEmail() + " / " + regisData.getPassword());
-
-                //Insert the data from the client in the database
-                dbOperations.insertNewUser(regisData.getName(),regisData.getId_number(),regisData.getEmail(),regisData.getPassword());
-                out.writeObject("You correctly registered");
-                out.flush();
-            } else{
-                ClientAuthenticationData authData = (ClientAuthenticationData) receivedMsg;
-                System.out.println("Authentication information arrive: " +
-                        authData.getEmail() + " / " + authData.getPassword());
-                if (dbOperations.authenticateUser(authData.getEmail(), authData.getPassword())) {
-                    out.writeObject("You correctly authenticate");
-                } else {
-                    out.writeObject("Authentication failed");
-                }
-                out.flush();
-            }
-
-        } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-
     }
 
     @Override
@@ -178,6 +129,43 @@ public class PrincipalServer extends UnicastRemoteObject implements Runnable,Pri
         synchronized (backupServers){
             backupServers.removeAll(backupServersToRemove);
         }
+    }
+
+    @Override
+    public byte[] transferDatabase() throws RemoteException {
+        String requestedCanonicalFilePath = null;
+        byte [] fileChunk = null;
+        File localDirectory = new File("C:/Users/Varix/IdeaProjects/PracticalProyect");
+
+        try {
+            requestedCanonicalFilePath = new File(localDirectory+File.separator+DBNAME).getCanonicalPath();
+
+
+            if(!requestedCanonicalFilePath.startsWith(localDirectory.getCanonicalPath()+File.separator)){
+                System.out.println("Nao e' permitido aceder ao ficheiro " + requestedCanonicalFilePath + "!");
+                System.out.println("A directoria de base nao corresponde a " + localDirectory.getCanonicalPath()+"!");
+            }
+
+            //BLOCK ANY OPERATION TO THE DATABASE
+            DbOperations db = DbOperations.getInstance(dbUrl);
+            synchronized (db) {
+                try (FileInputStream fin = new FileInputStream(requestedCanonicalFilePath);
+                     ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+                    byte[] buffer = new byte[4096]; // Adjust the buffer size as needed
+                    int bytesRead;
+
+                    while ((bytesRead = fin.read(buffer)) != -1) {
+                        bos.write(buffer, 0, bytesRead);
+                    }
+
+                    fileChunk = bos.toByteArray();
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return fileChunk;
     }
 
     @Override
