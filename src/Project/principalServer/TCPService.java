@@ -8,16 +8,16 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.rmi.RemoteException;
 
 public class TCPService implements Runnable{
 
     private Socket s;
     private DbOperations dbOperations;
-    public TCPService(Socket s, String dbUrl){
+    public TCPService(Socket s, String dbUrl) throws RemoteException {
         this.s=s;
-        this.dbOperations = DbOperations.getInstance(dbUrl);
+        this.dbOperations = new DbOperations(dbUrl);
     }
-
     @Override
     public void run() {
 
@@ -41,12 +41,8 @@ public class TCPService implements Runnable{
                 ClientAuthenticationData authData = (ClientAuthenticationData) receivedMsg;
                 System.out.println("Authentication information arrive: " +
                         authData.getEmail() + " / " + authData.getPassword());
-                if (dbOperations.authenticateUser(authData.getEmail(), authData.getPassword())) {
-                    out.writeObject("You correctly authenticate");
-                } else {
-                    out.writeObject("Authentication failed");
-                }
-                out.flush();
+                dbOperations.authenticateUser(authData.getEmail(), authData.getPassword());
+                out.writeObject("You correctly authenticate");
             }
 
         } catch (IOException | ClassNotFoundException e) {

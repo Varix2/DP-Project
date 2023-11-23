@@ -11,16 +11,15 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PrincipalServer extends UnicastRemoteObject implements PrincipalServerInterface {
     private final String DBNAME = "javaProgramming.db";
-    //DbOperations dbOperations;
     Socket s;
     String dbUrl;
     final List<BackupServerInterface> backupServers;
+
 
     public PrincipalServer()throws RemoteException{
         this.backupServers = new ArrayList<>();
@@ -32,7 +31,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         Thread tcp,mcThread;
         String dbUrl;
         int registryPort;
-        String servicioRMI;
+        String servicioRMI,servicioRMIDatabase;
 
 
         if(args.length != 4){
@@ -51,6 +50,10 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         dbUrl = args[1];
         registryPort = Integer.parseInt(args[3]);
         servicioRMI ="rmi://localhost:" + registryPort + "/" + args[2];
+        servicioRMIDatabase = "rmi://localhost:2000/DB-service";
+
+
+
 
         /*
             CREATION OF REGISTRY LOCAL
@@ -61,11 +64,26 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
                     registryPort + "...");
 
             LocateRegistry.createRegistry(registryPort);
+            LocateRegistry.createRegistry(2000);
 
             System.out.println("Registry lancado!");
 
         }catch(RemoteException e){
             System.out.println("Registry provavelmente ja' em execucao!");
+        }
+
+        /*
+            Servicio Database
+         */
+        DbOperations dbService = null;
+        try {
+            dbService = new DbOperations(dbUrl);
+            System.out.println("Servico <<dbService>> criado e em execucao...");
+
+            // Registra la instancia en el registro RMI
+            Naming.rebind(servicioRMIDatabase, dbService);
+        } catch (RemoteException | MalformedURLException e) {
+            throw new RuntimeException(e);
         }
 
         /*
@@ -99,16 +117,18 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
          */
 
         try(ServerSocket psSocket = new ServerSocket(listeningPort)){
+            int i = 0;
             while(true) {
                 toClient = psSocket.accept();
 
-                tcp = new Thread(new TCPService(toClient, dbUrl), "Thread 1");
+                tcp = new Thread(new TCPService(toClient, dbUrl), "Cliente"+ ++i);
                 tcp.start();
 
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
     }
 
     @Override
@@ -132,7 +152,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
     }
 
     @Override
-    public byte[] transferDatabase() throws RemoteException {
+    public synchronized byte[] transferDatabase() throws RemoteException {
         String requestedCanonicalFilePath = null;
         byte [] fileChunk = null;
         File localDirectory = new File("C:/Users/Varix/IdeaProjects/PracticalProyect");
@@ -147,8 +167,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             }
 
             //BLOCK ANY OPERATION TO THE DATABASE
-            DbOperations db = DbOperations.getInstance(dbUrl);
-            synchronized (db) {
+
                 try (FileInputStream fin = new FileInputStream(requestedCanonicalFilePath);
                      ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
 
@@ -161,13 +180,10 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
                     fileChunk = bos.toByteArray();
 
-                    //Database Version controller
+                    /*Database Version controller
                     DbOperations versionUpdate = new DbOperations(dbUrl);
                     versionUpdate.versionController();
-
-
-                }
-
+                    */
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

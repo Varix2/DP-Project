@@ -65,6 +65,7 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
 
         //JUST A TEST TO KNOW IF IT WORKS
         try {
+            System.out.println("PRUEBA DE SI FUNCIONA CALLBACK. <<JUST FOR DEBUG>>");
             serverService.pruebaRMI("OJSHKJHDKHDKKHDHKHDGHKDGHJD");
         } catch (RemoteException e) {
             throw new RuntimeException(e);

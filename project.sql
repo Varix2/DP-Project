@@ -1,9 +1,8 @@
 
 -- Crear la tabla "Utilizador"
 CREATE TABLE Users (
-    IdNumber INT PRIMARY KEY AUTO_INCREMENT,
-    Uname VARCHAR(50),
-    Email VARCHAR(50),
+    Email VARCHAR(50) PRIMARY KEY,
+    Uname VARCHAR(50,
     Password VARCHAR(100),
     RoleId INT,
     FOREIGN KEY (RoleId) REFERENCES Roles(Id)

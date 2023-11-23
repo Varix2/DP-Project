@@ -2,64 +2,67 @@ package Project.client.ui;
 
 import Project.client.ClientAuthenticationData;
 import Project.client.ClientRegistryData;
+import Project.manageDB.DbOperationsInterface;
+import Project.manageDB.Event;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.util.List;
 
 public class Menus {
-    public static ClientRegistryData showRegistryMenu(){
+    private static DbOperationsInterface dbOperations;
+    private int userId;
+    private String userName;
+    private String userEmail;
+
+    public Menus() {
+        try {
+            dbOperations = (DbOperationsInterface) Naming.lookup("rmi://localhost:2000/DB-service");
+        } catch (NotBoundException | MalformedURLException | RemoteException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static ClientRegistryData showRegistryMenu() {
         String name = null, email = null, passwd = null;
         int id = 0;
 
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-            System.out.println("Menú de Registro");
-            System.out.println("1. Registrar un nuevo usuario");
-            System.out.println("2. Salir");
-            System.out.print("Elije una opción: ");
-
-            String opcion = reader.readLine();
-
-            switch (opcion) {
-                case "1":
-                    System.out.println("Ingresa los datos del usuario:");
-                    System.out.print("Name: ");
-                    name = reader.readLine();
-                    System.out.print("Identification: ");
-                    id = Integer.parseInt(reader.readLine());
-                    System.out.print("Email: ");
-                    email = reader.readLine();
-                    System.out.print("Password: ");
-                    passwd = reader.readLine();
-
-                    break;
-                case "2":
-                    System.out.println("Saliendo del programa.");
-                    System.exit(0);
-                    break;
-                default:
-                    System.out.println("Opción no válida. Por favor, elige 1 o 2.");
-            }
+            System.out.println("Login Menu");
+            System.out.print("Name: ");
+            name = reader.readLine();
+            System.out.print("Identification: ");
+            id = Integer.parseInt(reader.readLine());
+            System.out.print("Email: ");
+            email = reader.readLine();
+            System.out.print("Password: ");
+            passwd = reader.readLine();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new ClientRegistryData(name,id,email, passwd);
+        return new ClientRegistryData(name, id, email, passwd);
     }
 
 
-    public static int mainMenu(){
+    public int mainMenu() {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
             int option;
 
-                System.out.println("Main Menu");
-                System.out.println("1. Login");
-                System.out.println("2. Sign up");
-                System.out.println("3. Exit");
+            System.out.println("Main Menu");
+            System.out.println("1. Login");
+            System.out.println("2. Sign up");
+            System.out.println("3. Exit");
             do {
                 System.out.println("----------------------------");
                 System.out.print("Choose an option: ");
@@ -71,17 +74,14 @@ public class Menus {
                 }
             } while (option < 1 || option > 3);
 
-            if (option == 3) {
-                System.out.println("Saliendo del programa.");
-                System.exit(0);
-            }
             return option;
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    public static ClientAuthenticationData showLoginMenu() {
+
+    public ClientAuthenticationData showLoginMenu() {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -91,8 +91,162 @@ public class Menus {
             String password = reader.readLine();
 
             return new ClientAuthenticationData(email, password);
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
+    public void showUserData(String email) throws RemoteException {
+        clearConsole();
+        String[] userData = dbOperations.getUserData(email);
+
+        if (userData != null) {
+            System.out.println("\nUser Profile:");
+            System.out.println("--------------------------------------");
+            System.out.println("Username: " + userData[0]);
+            System.out.println("Identification: " + userData[1]);
+            System.out.println("Email: " + userData[2]);
+
+            System.out.println("<Enter> to go back to your profile");
+            System.out.println();
+            try {
+                System.in.read();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            System.out.println("User not found.");
+        }
+    }
+
+
+    public int showProfile(String email) {
+        int option;
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            System.out.println("\nWelcome "+ email);
+            System.out.println("1. See your data");
+            System.out.println("2. Edit your data");
+            System.out.println("3. Consult events");
+            System.out.println("4. Exit");
+            do {
+                System.out.println("----------------------------");
+                System.out.print("Choose an option: ");
+
+                option = Integer.parseInt(reader.readLine());
+
+                if (option < 1 || option > 4) {
+                    System.out.println("ENTER A VALID OPTION");
+                }
+            } while (option < 1 || option > 4);
+
+            switch (option) {
+                case 1:
+                    showUserData(email);
+                    break;
+                case 2:
+                    editUserData(email);
+                    break;
+                case 3:
+                    consultEvents(email);
+                    break;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return option;
+    }
+
+    private void editUserData(String email) {
+        String newName, newEmail, newPassword;
+        int newID;
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            System.out.println("Editing data for " + email + ":");
+
+            // Prompt for new entries for the data the user wants to edit
+            System.out.print("Enter your new name: ");
+            newName = reader.readLine();
+
+            System.out.print("Enter the new identification number: ");
+            newID = Integer.parseInt(reader.readLine());
+
+            System.out.print("Enter the new email: ");
+            newEmail = reader.readLine();
+
+            System.out.print("Enter the new password: ");
+            newPassword = reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        try {
+            dbOperations.updateUserData(newName, newID, newEmail, newPassword, email);
+
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void consultEvents(String email) {
+        List<Event> events;
+        try {
+            events = dbOperations.getAllEvents();
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("Tabla de Eventos:");
+        System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME", "ASSISTANCE");
+        System.out.println("------------------------------------------------------------------------------------------");
+
+        for (Event event : events) {
+            System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s%-17d\n",
+                    event.getId(), event.getName(), event.getLocation(),
+                    event.getData(), event.getStartTime(), event.getEndTime(), event.getAssistants());
+        }
+        int option;
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            System.out.println("1. Join an event:");
+            System.out.println("2. Go back to menu");
+            do {
+                System.out.println("----------------------------");
+                System.out.print("Choose an option: ");
+
+                option = Integer.parseInt(reader.readLine());
+
+                if (option < 1 || option > 2) {
+                    System.out.println("ENTER A VALID OPTION");
+                }
+            } while (option < 1 || option > 2);
+            if(option == 1){
+                System.out.println("Select the ID of the event you want to join: ");
+                int eventID = Integer.parseInt(reader.readLine());
+                dbOperations.joinAnEvent(email,eventID);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("<Enter> to go back to your profile");
+        System.out.println();
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void clearConsole(){
+        try {
+            new ProcessBuilder("clear").inheritIO().start().waitFor();
+        } catch (Exception e) {
+            /*No hacer nada*/
+        }
+    }
+
 }

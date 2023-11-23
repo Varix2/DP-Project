@@ -18,6 +18,8 @@ public class Client {
         String response;
         ClientRegistryData cr;
         ClientAuthenticationData ca;
+        String email;
+        Menus menu = new Menus();
 
         if (args.length != 2) {
             System.out.println("Sintaxe: java Client serverAddress serverTCPPort");
@@ -29,31 +31,40 @@ public class Client {
              ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream())) {
 
 
-            socket.setSoTimeout(TIMEOUT * 1000);
-            if(Menus.mainMenu() == 1){
-                cr = Menus.showRegistryMenu();
-                oout.writeObject(cr);
-                oout.flush();
-            } else{
-                ca = Menus.showLoginMenu();
-                oout.writeObject(ca);
-                oout.flush();
-            }
+            //socket.setSoTimeout(TIMEOUT * 1000);
+            int opcionMainMenu;
+            int optionProfile;
+            do {
+                opcionMainMenu = menu.mainMenu();
+                if (opcionMainMenu == 1) {
+                    cr = Menus.showRegistryMenu();
+                    sendAndReceive(oout, oin, cr);
+                } else if (opcionMainMenu == 2) {
+                        ca = menu.showLoginMenu();
+                        sendAndReceive(oout, oin, ca);
+                    do {
+                        optionProfile = menu.showProfile(ca.getEmail());
+                    }while(optionProfile !=4);
+                }
+            }while (opcionMainMenu !=3);
+            //new LoginForm(socket).setVisible(true);
 
-            //Deserializa a resposta recebida em socket
-            response = (String) oin.readObject();
-
-            new LoginForm(socket).setVisible(true);
-
-            if (response == null) {
-                System.out.println("O servidor nao enviou qualquer respota antes de"
-                        + " fechar aligacao TCP!");
-            } else {
-                System.out.println(response);
-            }
-
-        } catch (Exception e) {
+        } catch (RuntimeException e){
+            System.err.println("Authentication error: "+e);
+        }catch (Exception e) {
             System.out.println("Ocorreu um erro no acesso ao socket:\n\t" + e);
+        }
+    }
+
+    private static void sendAndReceive(ObjectOutputStream oout, ObjectInputStream oin, Object obj)
+    {
+        try {
+            oout.writeObject(obj);
+            oout.flush();
+            String response = (String) oin.readObject();
+            System.out.println(response);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
