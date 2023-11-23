@@ -10,5 +10,6 @@ public interface DbOperationsInterface extends Remote {
 
     List<Event> getAllEvents() throws RemoteException;
     void joinAnEvent(String email, int eventID) throws RemoteException;
+    List<Event> getUserEvents(String email) throws RemoteException;
     boolean authenticateUser(String email, String password) throws RemoteException;
 }

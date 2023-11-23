@@ -44,7 +44,7 @@ public class Client {
                         sendAndReceive(oout, oin, ca);
                     do {
                         optionProfile = menu.showProfile(ca.getEmail());
-                    }while(optionProfile !=4);
+                    }while(optionProfile !=5);
                 }
             }while (opcionMainMenu !=3);
             //new LoginForm(socket).setVisible(true);

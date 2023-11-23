@@ -12,6 +12,7 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Menus {
@@ -129,18 +130,19 @@ public class Menus {
             System.out.println("\nWelcome "+ email);
             System.out.println("1. See your data");
             System.out.println("2. Edit your data");
-            System.out.println("3. Consult events");
-            System.out.println("4. Exit");
+            System.out.println("3. Consult your events");
+            System.out.println("4. Consult events");
+            System.out.println("5. Exit");
             do {
                 System.out.println("----------------------------");
                 System.out.print("Choose an option: ");
 
                 option = Integer.parseInt(reader.readLine());
 
-                if (option < 1 || option > 4) {
+                if (option < 1 || option > 5) {
                     System.out.println("ENTER A VALID OPTION");
                 }
-            } while (option < 1 || option > 4);
+            } while (option < 1 || option > 5);
 
             switch (option) {
                 case 1:
@@ -150,6 +152,9 @@ public class Menus {
                     editUserData(email);
                     break;
                 case 3:
+                    consultYourEvents(email);
+                    break;
+                case 4:
                     consultEvents(email);
                     break;
             }
@@ -157,6 +162,25 @@ public class Menus {
             throw new RuntimeException(e);
         }
         return option;
+    }
+
+    private void consultYourEvents(String email) {
+        List<Event> events;
+        try {
+            events = dbOperations.getUserEvents(email);
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
+
+        eventsDisplay(events);
+
+        System.out.println("<Enter> to go back to your profile");
+        System.out.println();
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void editUserData(String email) {
@@ -199,15 +223,7 @@ public class Menus {
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("Tabla de Eventos:");
-        System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME", "ASSISTANCE");
-        System.out.println("------------------------------------------------------------------------------------------");
-
-        for (Event event : events) {
-            System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s%-17d\n",
-                    event.getId(), event.getName(), event.getLocation(),
-                    event.getData(), event.getStartTime(), event.getEndTime(), event.getAssistants());
-        }
+        eventsDisplay(events);
         int option;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -241,6 +257,17 @@ public class Menus {
         }
     }
 
+    private void eventsDisplay(List<Event> events){
+        System.out.println("Tabla de Eventos:");
+        System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME", "ASSISTANCE");
+        System.out.println("------------------------------------------------------------------------------------------");
+
+        for (Event event : events) {
+            System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s%-17d\n",
+                    event.getId(), event.getName(), event.getLocation(),
+                    event.getData(), event.getStartTime(), event.getEndTime(), event.getAssistants());
+        }
+    }
     private void clearConsole(){
         try {
             new ProcessBuilder("clear").inheritIO().start().waitFor();

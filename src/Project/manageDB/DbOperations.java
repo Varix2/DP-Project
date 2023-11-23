@@ -165,6 +165,55 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
     }
 
+    @Override
+    public List<Event> getUserEvents(String email) throws RemoteException {
+        List<Event> userEvents = new ArrayList<>();
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection conn = DriverManager.getConnection(dbAddress)) {
+            // Obtener el ID del usuario usando su correo electrónico
+            String selectUserIdQuery = "SELECT IdNumber FROM Utilizador WHERE Email = ?";
+            try (PreparedStatement selectUserIdStmt = conn.prepareStatement(selectUserIdQuery)) {
+                selectUserIdStmt.setString(1, email);
+                ResultSet resultSet = selectUserIdStmt.executeQuery();
+
+                if (resultSet.next()) {
+                    int userId = resultSet.getInt("IdNumber");
+
+                    // Obtener los eventos del usuario a través de los asistentes
+                    String selectUserEventsQuery = "SELECT Events.*, COUNT(Assistants.idGuest) as AssistantsNumber " +
+                            "FROM Events " +
+                            "JOIN Assistants ON Events.id = Assistants.idEvent " +
+                            "WHERE Assistants.idGuest = ? " +
+                            "GROUP BY Events.id";
+                    try (PreparedStatement selectUserEventsStmt = conn.prepareStatement(selectUserEventsQuery)) {
+                        selectUserEventsStmt.setInt(1, userId);
+                        ResultSet eventsResultSet = selectUserEventsStmt.executeQuery();
+
+                        while (eventsResultSet.next()) {
+                            int id = eventsResultSet.getInt("id");
+                            String name = eventsResultSet.getString("name");
+                            String location = eventsResultSet.getString("location");
+                            String data = eventsResultSet.getString("data");
+                            String startTime = eventsResultSet.getString("starTime");
+                            String endTime = eventsResultSet.getString("endTime");
+                            int numAssistants = eventsResultSet.getInt("AssistantsNumber");
+
+
+                            userEvents.add(new Event(id, name, location, numAssistants, data, startTime, endTime));
+                        }
+                    }
+                } else {
+                    System.out.println("User with email " + email + " not found.");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        }
+
+        return userEvents;
+    }
+
 
     @Override
     public void updateUserData(String name, int id, String email, String passwd, String oldEmail) throws RemoteException {
