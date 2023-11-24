@@ -1,6 +1,8 @@
 package Project.client.ui;
 
+import Project.manageDB.Attendance;
 import Project.manageDB.DbOperationsInterface;
+import Project.manageDB.Event;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,6 +13,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class AdminMenus {
 
@@ -28,7 +31,7 @@ public class AdminMenus {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
             int option;
-
+            System.out.println("\n********************");
             System.out.println("Main Menu");
             System.out.println("1. Create event");
             System.out.println("2. Edit event");
@@ -62,8 +65,8 @@ public class AdminMenus {
                 case 3:
                     deleteEvent();
                     break;
-                case 4:
-
+                case 6:
+                    consultEventAttendance();
                     break;
             }
 
@@ -72,6 +75,35 @@ public class AdminMenus {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void consultEventAttendance() {
+        List<Attendance> attendance;
+        Event event;
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            // Solicitar al usuario que ingrese el ID del evento para consultar la asistencia
+            System.out.println("Enter the ID of the event to consult attendance: ");
+            int eventId = Integer.parseInt(reader.readLine());
+            System.out.println("Attendance for Event ID " + eventId + ":");
+
+            try {
+                attendance = dbOperations.getEventAttendance(eventId);
+                event = dbOperations.getEvent(eventId);
+            } catch (RemoteException e) {
+                throw new RuntimeException(e);
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (attendance.isEmpty()) {
+            System.out.println("No attendance records found for this event.");
+        } else {
+            attendanceDisplay(event,attendance);
+        }
+
     }
 
     private void editEvent() {
@@ -173,4 +205,25 @@ public class AdminMenus {
             throw new RuntimeException(e);
         }
     }
+    private void attendanceDisplay(Event event, List<Attendance> attendance) {
+        // Mostrar la tabla del evento
+        System.out.println("Event Table:");
+        System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME");
+        System.out.println("---------------------------------------------------");
+        System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s\n", event.getId(), event.getName(), event.getLocation(),
+                event.getData(), event.getStartTime(), event.getEndTime());
+
+        // Mostrar la tabla de asistentes
+        System.out.println("\nAttendance Table:");
+        System.out.format("%-5s%-10s%-15s\n", "ID", "NAME", "EMAIL");
+        System.out.println("---------------------------------------------------");
+
+        // Mostrar los asistentes
+        for (Attendance assistant : attendance) {
+            System.out.format("%-5d%-10s%-15s\n",
+                    assistant.getUserId(), assistant.getUserName(), assistant.getEmail());
+        }
+    }
+
+
 }

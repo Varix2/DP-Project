@@ -58,7 +58,7 @@ public class UserMenus {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
             int option;
-
+            System.out.println("\n********************");
             System.out.println("Main Menu");
             System.out.println("1. Login");
             System.out.println("2. Sign up");
@@ -267,6 +267,8 @@ public class UserMenus {
                     event.getData(), event.getStartTime(), event.getEndTime(), event.getAssistants());
         }
     }
+
+
     private void clearConsole(){
         try {
             new ProcessBuilder("clear").inheritIO().start().waitFor();

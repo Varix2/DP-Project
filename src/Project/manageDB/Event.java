@@ -21,6 +21,14 @@ public class Event implements Serializable {
         this.startTime = startTime;
         this.endTime = endTime;
     }
+    public Event(int id, String name, String location, String data, String startTime, String endTime) {
+        this.id = id;
+        this.name = name;
+        this.location = location;
+        this.data = data;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
 
     public int getId() {
         return id;

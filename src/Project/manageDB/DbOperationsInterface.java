@@ -17,4 +17,8 @@ public interface DbOperationsInterface extends Remote {
     void deleteEvent(int eventId) throws RemoteException;
 
     void updateEvent(int eventId, String newName, String newLocation, LocalDate newDate, String newStartTime, String newEndTime)throws RemoteException;
+
+    List<Attendance> getEventAttendance(int eventId)throws RemoteException;
+
+    Event getEvent(int eventId)throws RemoteException;
 }

@@ -349,6 +349,67 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
     }
 
+    public List<Attendance> getEventAttendance(int eventId) throws RemoteException {
+        List<Attendance> attendanceList = new ArrayList<>();
+
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        try (Connection conn = DriverManager.getConnection(dbAddress)) {
+            String selectAttendanceQuery = "SELECT Utilizador.Uname AS userName, Utilizador.IdNumber AS userId, Utilizador.Email " +
+                    "FROM Assistants " +
+                    "JOIN Utilizador ON Assistants.idGuest = Utilizador.IdNumber " +
+                    "WHERE Assistants.idEvent = ?";
+
+            try (PreparedStatement selectAttendanceStmt = conn.prepareStatement(selectAttendanceQuery)) {
+                selectAttendanceStmt.setInt(1, eventId);
+                ResultSet attendanceResultSet = selectAttendanceStmt.executeQuery();
+
+                while (attendanceResultSet.next()) {
+                    String userName = attendanceResultSet.getString("userName");
+                    int userId = attendanceResultSet.getInt("userId");
+                    String email = attendanceResultSet.getString("Email");
+
+                    attendanceList.add(new Attendance(userName, userId, email));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        }
+
+        return attendanceList;
+    }
+
+
+    @Override
+    public Event getEvent(int eventId) throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection conn = DriverManager.getConnection(dbAddress)) {
+            String selectEventQuery = "SELECT * FROM Events WHERE id = ?";
+            try (PreparedStatement selectEventStmt = conn.prepareStatement(selectEventQuery)) {
+                selectEventStmt.setInt(1, eventId);
+                ResultSet eventResultSet = selectEventStmt.executeQuery();
+
+                if (eventResultSet.next()) {
+                    int id = eventResultSet.getInt("id");
+                    String name = eventResultSet.getString("name");
+                    String location = eventResultSet.getString("location");
+                    String data = eventResultSet.getString("data");
+                    String startTime = eventResultSet.getString("starTime");
+                    String endTime = eventResultSet.getString("endTime");
+
+                    return new Event(id, name, location, data, startTime, endTime);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        }
+
+        return null;
+    }
+
+
     @Override
     public synchronized void createEvent(String name, String location, LocalDate date, String startTime, String endTime) throws RemoteException {
 
