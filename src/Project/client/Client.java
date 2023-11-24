@@ -1,6 +1,7 @@
 package Project.client;
 
-import Project.client.ui.Menus;
+import Project.client.ui.AdminMenus;
+import Project.client.ui.UserMenus;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -19,7 +20,8 @@ public class Client {
         ClientRegistryData cr;
         ClientAuthenticationData ca;
         String email;
-        Menus menu = new Menus();
+        UserMenus userMenu = new UserMenus();
+        AdminMenus adminMenu = new AdminMenus();
 
         if (args.length != 2) {
             System.out.println("Sintaxe: java Client serverAddress serverTCPPort");
@@ -34,23 +36,24 @@ public class Client {
             //socket.setSoTimeout(TIMEOUT * 1000);
             int opcionMainMenu;
             int optionProfile;
+            adminMenu.showProfile();
             do {
-                opcionMainMenu = menu.mainMenu();
+                opcionMainMenu = userMenu.mainMenu();
                 if (opcionMainMenu == 1) {
-                    cr = Menus.showRegistryMenu();
+                    cr = userMenu.showRegistryMenu();
                     sendAndReceive(oout, oin, cr);
                 } else if (opcionMainMenu == 2) {
-                        ca = menu.showLoginMenu();
+                        ca = userMenu.showLoginMenu();
                         sendAndReceive(oout, oin, ca);
                     do {
-                        optionProfile = menu.showProfile(ca.getEmail());
+                        optionProfile = userMenu.showProfile(ca.getEmail());
                     }while(optionProfile !=5);
                 }
             }while (opcionMainMenu !=3);
             //new LoginForm(socket).setVisible(true);
 
         } catch (RuntimeException e){
-            System.err.println("Authentication error: "+e);
+            System.err.println("Error: "+e);
         }catch (Exception e) {
             System.out.println("Ocorreu um erro no acesso ao socket:\n\t" + e);
         }

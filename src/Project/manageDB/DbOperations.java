@@ -4,6 +4,8 @@ import javax.naming.AuthenticationException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,6 +80,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
         throw new RuntimeException("Authentication failed for the user: " + email);
     }
+
 
     @Override
     public synchronized String[] getUserData(String email) {
@@ -270,6 +273,126 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
 
     }
+
+    @Override
+    public synchronized void deleteEvent(int eventId) throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress)) {
+            // Verificar si hay asistentes para el evento
+            boolean hasAssistants = hasAssistants(connection, eventId);
+
+            // Si no hay asistentes, eliminar el evento
+            if (!hasAssistants) {
+                String deleteEventQuery = "DELETE FROM Events WHERE id = ?";
+
+                try (PreparedStatement preparedStatement = connection.prepareStatement(deleteEventQuery)) {
+                    // Establecer el parámetro de la consulta
+                    preparedStatement.setInt(1, eventId);
+
+                    System.out.println("Deleting event...");
+
+                    // Ejecutar la consulta
+                    int rowsAffected = preparedStatement.executeUpdate();
+                    if (rowsAffected > 0) {
+                        System.out.println("Evento eliminado");
+                    } else {
+                        System.out.println("Evento no encontrado para eliminar.");
+                    }
+                }
+            } else {
+                System.out.println("No se puede eliminar el evento. Hay asistentes registrados.");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void updateEvent(int eventId, String newName, String newLocation, LocalDate newDate, String newStartTime, String newEndTime)throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress)) {
+            // Verificar si hay asistentes para el evento
+            boolean hasAssistants = hasAssistants(connection, eventId);
+
+            // Si no hay asistentes, editar el evento
+            if (!hasAssistants) {
+                String updateEventQuery = "UPDATE Events SET name=?, location=?, data=?, starTime=?, endTime=? WHERE id=?";
+                try (PreparedStatement preparedStatement = connection.prepareStatement(updateEventQuery)) {
+                    preparedStatement.setString(1, newName);
+                    preparedStatement.setString(2, newLocation);
+                    preparedStatement.setString(3, String.valueOf(newDate));
+                    preparedStatement.setString(4, newStartTime);
+                    preparedStatement.setString(5, newEndTime);
+                    preparedStatement.setInt(6, eventId);
+
+                    int rowsUpdated = preparedStatement.executeUpdate();
+
+                    // Imprimir información de depuración
+                    System.out.println("Rows updated: " + rowsUpdated);
+
+                    if (rowsUpdated > 0) {
+                        System.out.println("Evento actualizado exitosamente.");
+                    } else {
+                        System.out.println("No se encontró ningún evento con el ID proporcionado. La actualización falló.");
+                    }
+                }
+            } else {
+                System.out.println("No se puede editar el evento. Hay asistentes registrados.");
+            }
+
+        } catch (SQLException e) {
+            // Manejar excepciones
+            System.out.println("SQLException: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public synchronized void createEvent(String name, String location, LocalDate date, String startTime, String endTime) throws RemoteException {
+
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress)) {
+            // Crear la consulta de inserción
+            String insertEventQuery = "INSERT INTO Events (name, location, data, starTime, endTime ) VALUES (?, ?, ?, ?, ?)";
+
+            // Preparar la consulta
+            try (PreparedStatement preparedStatement = connection.prepareStatement(insertEventQuery)) {
+                // Establecer los parámetros de la consulta
+                preparedStatement.setString(1, name);
+                preparedStatement.setString(2, location);
+                preparedStatement.setString(3, String.valueOf(date));
+                preparedStatement.setString(4, startTime);
+                preparedStatement.setString(5, endTime);
+
+                // Ejecutar la consulta
+                preparedStatement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean hasAssistants(Connection connection, int eventId) throws SQLException {
+        // Verificar si hay asistentes para el evento
+        String checkAssistantsQuery = "SELECT COUNT(*) FROM Assistants WHERE idEvent = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(checkAssistantsQuery)) {
+            // Establecer el parámetro de la consulta
+            preparedStatement.setInt(1, eventId);
+
+            // Ejecutar la consulta y obtener el resultado
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    int count = resultSet.getInt(1);
+                    return count > 0;
+                }
+            }
+        }
+        return false;
+    }
+
 
 }
 

@@ -12,16 +12,15 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.List;
 
-public class Menus {
-    private static DbOperationsInterface dbOperations;
+public class UserMenus {
+    private final DbOperationsInterface dbOperations;
     private int userId;
     private String userName;
     private String userEmail;
 
-    public Menus() {
+    public UserMenus() {
         try {
             dbOperations = (DbOperationsInterface) Naming.lookup("rmi://localhost:2000/DB-service");
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
@@ -30,7 +29,7 @@ public class Menus {
 
     }
 
-    public static ClientRegistryData showRegistryMenu() {
+    public ClientRegistryData showRegistryMenu() {
         String name = null, email = null, passwd = null;
         int id = 0;
 
