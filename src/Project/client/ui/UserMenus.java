@@ -124,8 +124,8 @@ public class UserMenus {
                 System.out.println("\nWelcome " + userEmail);
                 System.out.println("1. See your data");
                 System.out.println("2. Edit your data");
-                System.out.println("3. Consult your events");
-                System.out.println("4. Consult events");
+                System.out.println("3. Register for an event");
+                System.out.println("4. Consult your events");
                 System.out.println("5. Exit");
                 System.out.println("----------------------------");
                 System.out.print("Choose an option: ");
@@ -140,10 +140,11 @@ public class UserMenus {
                         userEmail = editUserData(userEmail);
                         break;
                     case 3:
-                        consultYourEvents(userEmail);
+                        registerForEvent(userEmail);
                         break;
                     case 4:
-                        consultEvents(userEmail);
+                        consultYourEvents(userEmail);
+
                         break;
                     case 5:
                         System.out.println("Exiting...");
@@ -211,7 +212,7 @@ public class UserMenus {
 
     }
 
-    public void consultEvents(String email) {
+    public void registerForEvent(String email) {
         List<Event> events;
         try {
             events = dbOperations.getAllEvents();

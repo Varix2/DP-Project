@@ -36,7 +36,7 @@ public class Client {
             //socket.setSoTimeout(TIMEOUT * 1000);
             int opcionMainMenu;
             int optionProfile;
-            adminMenu.showProfile();
+           //adminMenu.showProfile();
             do {
                 opcionMainMenu = userMenu.mainMenu();
                 if (opcionMainMenu == 1) {
