@@ -85,6 +85,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     }
 
 
+
     @Override
     public synchronized String[] getUserData(String email) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
@@ -143,14 +144,33 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-                    String insertAssistantQuery = "INSERT INTO Assistants (idEvent, idGuest) VALUES (?, ?)";
-                    try (PreparedStatement insertAttendanceStmt = conn.prepareStatement(insertAssistantQuery)) {
-                        insertAttendanceStmt.setInt(1, eventID);
-                        insertAttendanceStmt.setString(2, email);
-                        insertAttendanceStmt.executeUpdate();
+            String checkEnrollmnetQuery = "SELECT COUNT(*) FROM Assistants a "
+                                            + "INNER JOIN Events e ON a.idevent = e.id"
+                                            + "WHERE a.idGuest = ? AND ? BETWEEN e.start AND e.end";
+            try (PreparedStatement checkEnrollmentStmt = conn.prepareStatement(checkEnrollmnetQuery)) {
+                checkEnrollmentStmt.setString(1, email);
 
-                        System.out.println("The user " + email + " has join to the event number " + eventID);
+                //get current datetime
+                Timestamp currentTimestamp = new Timestamp(System.currentTimeMillis());
+                checkEnrollmentStmt.setTimestamp(2, currentTimestamp);
+
+                try (ResultSet resultSet = checkEnrollmentStmt.executeQuery()) {
+                    //if the user is already enrolled in another active event
+                    if (resultSet.next() && resultSet.getInt(1) > 0) {
+                        System.out.println("The user " + email + " is already enrolled in an active event.");
+                    } else {
+                        //if the user is not enrolled in an active event
+                        String insertAssistantQuery = "INSERT INTO Assistants (idEvent, idGuest) VALUES (?, ?)";
+                        try (PreparedStatement insertAttendanceStmt = conn.prepareStatement(insertAssistantQuery)) {
+                            insertAttendanceStmt.setInt(1, eventID);
+                            insertAttendanceStmt.setString(2, email);
+                            insertAttendanceStmt.executeUpdate();
+
+                            System.out.println("The user " + email + " has join to the event number " + eventID);
+                        }
                     }
+                }
+            }
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
