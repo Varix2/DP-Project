@@ -1,36 +1,37 @@
-
--- Crear la tabla "Utilizador"
 CREATE TABLE Users (
-    Email VARCHAR(50) PRIMARY KEY,
-    Uname VARCHAR(50,
-    Password VARCHAR(100),
-    RoleId INT,
-    FOREIGN KEY (RoleId) REFERENCES Roles(Id)
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(50),
+    email VARCHAR(50) UNIQUE,
+    password VARCHAR(100),
+    roleId INTEGER,
+    FOREIGN KEY (roleId) REFERENCES Roles(id)
 );
 
---  create table events
 CREATE TABLE Events (
-    Id INT PRIMARY KEY AUTO_INCREMENT,
-    EventName VARCHAR(50),
-    Location VARCHAR(100),
-    DateOfCompletion DATE,
-    StartDate VARCHAR(20),
-    EndDate VARCHAR(20)
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50),
+    location VARCHAR(100),
+    date DATE,
+    startTime DATETIME,
+    endTime DATETIME
 );
 
---create table attendance
-CREATE TABLE Attendance(
-    Id PRIMARY KEY AUTO_INCREMENT,
-    EventId INT,
-    UserId INT,
-    CreatedAt VARCHAR(50),
-    FOREIGN KEY (EventId) REFERENCES Events(Id),
-    FOREIGN KEY (UserId) REFERENCES Users(Id)
+CREATE TABLE Attendance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    idEvent INTEGER,
+    idGuest VARCHAR(50),
+    FOREIGN KEY (idEvent) REFERENCES Events(id),
+    FOREIGN KEY (idGuest) REFERENCES Users(email)
 );
 
---create table user roles
-CREATE TABLE Roles(
-    Id PRIMARY KEY AUTO_INCREMENT,
-    Description VARCHAR(20)
+CREATE TABLE Roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    roleName VARCHAR(30) UNIQUE
 );
+
+CREATE TABLE Version (
+    id INTEGER PRIMARY KEY,
+    versionNumber INTEGER
+);
+
 

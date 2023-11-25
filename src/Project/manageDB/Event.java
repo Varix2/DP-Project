@@ -7,16 +7,16 @@ public class Event implements Serializable {
     private int id;
     private String name;
     private String location;
-    private int assistants;
+    private int ttendees;
     private String data;
     private String startTime;
     private String endTime;
 
-    public Event(int id, String name, String location, int assistants, String data, String startTime, String endTime) {
+    public Event(int id, String name, String location, int ttendees, String data, String startTime, String endTime) {
         this.id = id;
         this.name = name;
         this.location = location;
-        this.assistants = assistants;
+        this.ttendees = ttendees;
         this.data = data;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -42,8 +42,8 @@ public class Event implements Serializable {
         return location;
     }
 
-    public int getAssistants() {
-        return assistants;
+    public int getttendees() {
+        return ttendees;
     }
 
     public String getData() {

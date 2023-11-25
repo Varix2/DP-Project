@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class Client {
 
@@ -30,7 +31,7 @@ public class Client {
 
         try (Socket socket = new Socket(InetAddress.getByName(args[0]), Integer.parseInt(args[1]));
              ObjectInputStream oin = new ObjectInputStream(socket.getInputStream());
-             ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream())) {
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
 
 
             //socket.setSoTimeout(TIMEOUT * 1000);
@@ -41,27 +42,26 @@ public class Client {
                 opcionMainMenu = userMenu.mainMenu();
                 if (opcionMainMenu == 1) {
                     cr = userMenu.showRegistryMenu();
-                    sendAndReceive(oout, oin, cr);
+                    sendAndReceive(out, oin, cr);
                 } else if (opcionMainMenu == 2) {
                         ca = userMenu.showLoginMenu();
-                        sendAndReceive(oout, oin, ca);
                         userMenu.showProfile(ca.getEmail());
                 }
             }while (opcionMainMenu !=3);
             //new LoginForm(socket).setVisible(true);
 
-        } catch (RuntimeException e){
+        } catch (SocketException e){
             System.err.println("Error: "+e);
-        }catch (Exception e) {
-            System.out.println("Ocorreu um erro no acesso ao socket:\n\t" + e);
+        }catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private static void sendAndReceive(ObjectOutputStream oout, ObjectInputStream oin, Object obj)
+    private static void sendAndReceive(ObjectOutputStream out, ObjectInputStream oin, Object obj)
     {
         try {
-            oout.writeObject(obj);
-            oout.flush();
+            out.writeObject(obj);
+            out.flush();
             String response = (String) oin.readObject();
             System.out.println(response);
         } catch (IOException | ClassNotFoundException e) {

@@ -419,9 +419,9 @@ public class AdminMenus {
         System.out.println("---------------------------------------------------");
 
         // Mostrar los asistentes
-        for (Attendance assistant : attendance) {
+        for (Attendance Attendee : attendance) {
             System.out.format("%-5d%-10s%-15s\n",
-                    assistant.getUserId(), assistant.getUserName(), assistant.getEmail());
+                    Attendee.getUserId(), Attendee.getUserName(), Attendee.getEmail());
         }
     }
 
@@ -450,7 +450,7 @@ public class AdminMenus {
         for (Event event : events) {
             System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s%-17d\n",
                     event.getId(), event.getName(), event.getLocation(),
-                    event.getData(), event.getStartTime(), event.getEndTime(), event.getAssistants());
+                    event.getData(), event.getStartTime(), event.getEndTime(), event.getttendees());
         }
     }
 

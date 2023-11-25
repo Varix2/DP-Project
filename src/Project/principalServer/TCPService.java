@@ -33,7 +33,7 @@ public class TCPService implements Runnable{
                         regisData.getName() + " / " + regisData.getEmail() + " / " + regisData.getPassword());
 
                 //Insert the data from the client in the database
-                int insertState = dbOperations.insertNewUser(regisData.getName(),regisData.getEmail(),regisData.getPassword());
+                int insertState = dbOperations.insertNewUser(regisData.getName(),regisData.getId_number(),regisData.getEmail(),regisData.getPassword());
                 if(insertState == 1){
                     out.writeObject("You correctly registered");
                 } else {
@@ -46,6 +46,7 @@ public class TCPService implements Runnable{
                         authData.getEmail() + " / " + authData.getPassword());
                 dbOperations.authenticateUser(authData.getEmail(), authData.getPassword());
                 out.writeObject("You correctly authenticate");
+                out.flush();
             }
 
         } catch (IOException | ClassNotFoundException e) {

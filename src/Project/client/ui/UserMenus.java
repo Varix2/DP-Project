@@ -44,7 +44,7 @@ public class UserMenus {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new ClientRegistryData(name, email, passwd);
+        return new ClientRegistryData(name, id,email, passwd);
     }
 
 
@@ -219,7 +219,11 @@ public class UserMenus {
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
-        eventsDisplay(events);
+        if(events.isEmpty()){
+            System.out.println("No events available ");
+        } else{
+            eventsDisplay(events);
+        }
         int option;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -261,7 +265,7 @@ public class UserMenus {
         for (Event event : events) {
             System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s%-17d\n",
                     event.getId(), event.getName(), event.getLocation(),
-                    event.getData(), event.getStartTime(), event.getEndTime(), event.getAssistants());
+                    event.getData(), event.getStartTime(), event.getEndTime(), event.getttendees());
         }
     }
 

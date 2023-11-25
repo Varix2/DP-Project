@@ -1,6 +1,5 @@
 package Project.manageDB;
 
-import javax.naming.AuthenticationException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
@@ -32,18 +31,19 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     */
 
 
-    public synchronized int insertNewUser(String name, String email, String passwd) {
+    public synchronized int insertNewUser(String name, int id, String email, String passwd) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
-        int insertState = -1;
+        int insertState = 0;
         System.out.println(dbAddress);
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            // Utilizamos PreparedStatement para evitar la inyección SQL
-            String createEntryQuery = "INSERT INTO Utilizador (name, email, Password) VALUES (?, ?, ?)";
+            String createEntryQuery = "INSERT INTO Users (id, name, email, password, roleId) VALUES (?,?, ?, ?,?)";
             try (PreparedStatement pstmt = conn.prepareStatement(createEntryQuery)) {
-                pstmt.setString(1, name);
-                pstmt.setString(2, email);
-                pstmt.setString(3, passwd);
+                pstmt.setInt(1, id);
+                pstmt.setString(2, name);
+                pstmt.setString(3, email);
+                pstmt.setString(4, passwd);
+                pstmt.setInt(5, 2);
 
                 insertState = pstmt.executeUpdate();
                 System.out.println("INSERT OPERATION COMPLETED. <<JUST FOR DEBUG>>");
@@ -64,7 +64,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String selectUserQuery = "SELECT Email, Password FROM Utilizador WHERE Email = ?";
+            String selectUserQuery = "SELECT email, Password FROM Users WHERE email = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(selectUserQuery)) {
                 pstmt.setString(1, email);
                 ResultSet resultSet = pstmt.executeQuery();
@@ -90,7 +90,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     public synchronized String[] getUserData(String email) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String selectUserQuery = "SELECT name, email FROM Utilizador WHERE email = ?";
+            String selectUserQuery = "SELECT name, email FROM Users WHERE email = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(selectUserQuery)) {
                 pstmt.setString(1, email);
                 ResultSet resultSet = pstmt.executeQuery();
@@ -115,9 +115,9 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         List<Event> events = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String selectEventsQuery = "SELECT Events.*, COUNT(Assistants.idGuest) as AssistantsNumber " +
+            String selectEventsQuery = "SELECT Events.*, COUNT(Attendance.idGuest) as AttendanceNumber " +
                     "FROM Events " +
-                    "LEFT JOIN Assistants ON Events.id = Assistants.idEvent " +
+                    "LEFT JOIN Attendance ON Events.id = Attendance.idEvent " +
                     "GROUP BY Events.id";
             try (PreparedStatement pstmt = conn.prepareStatement(selectEventsQuery)) {
                 ResultSet resultSet = pstmt.executeQuery();
@@ -129,8 +129,8 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     String date = resultSet.getString("date");
                     String startTime = resultSet.getString("startTime");
                     String endTime = resultSet.getString("endTime");
-                    int numAssistants = resultSet.getInt("AssistantsNumber");
-                    events.add(new Event(id, name, location, numAssistants,date, startTime, endTime));
+                    int numttendees = resultSet.getInt("ttendeesNumber");
+                    events.add(new Event(id, name, location, numttendees,date, startTime, endTime));
                 }
             }
         } catch (SQLException e) {
@@ -144,12 +144,11 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String checkEnrollmnetQuery = "SELECT COUNT(*) FROM Assistants a "
+            String checkEnrollmnetQuery = "SELECT COUNT(*) FROM Attendance a "
                                             + "INNER JOIN Events e ON a.idEvent = e.id"
                                             + "WHERE a.idGuest = ? AND ? BETWEEN e.startTime AND e.endTime";
             try (PreparedStatement checkEnrollmentStmt = conn.prepareStatement(checkEnrollmnetQuery)) {
                 checkEnrollmentStmt.setString(1, email);
-
                 //get current datetime
                 Timestamp currentTimestamp = new Timestamp(System.currentTimeMillis());
                 checkEnrollmentStmt.setTimestamp(2, currentTimestamp);
@@ -160,8 +159,8 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                         System.out.println("The user " + email + " is already enrolled in an active event.");
                     } else {
                         //if the user is not enrolled in an active event
-                        String insertAssistantQuery = "INSERT INTO Assistants (idEvent, idGuest) VALUES (?, ?)";
-                        try (PreparedStatement insertAttendanceStmt = conn.prepareStatement(insertAssistantQuery)) {
+                        String insertAttendeeQuery = "INSERT INTO Attendance (idEvent, idGuest) VALUES (?, ?)";
+                        try (PreparedStatement insertAttendanceStmt = conn.prepareStatement(insertAttendeeQuery)) {
                             insertAttendanceStmt.setInt(1, eventID);
                             insertAttendanceStmt.setString(2, email);
                             insertAttendanceStmt.executeUpdate();
@@ -182,11 +181,10 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-                    // Obtener los eventos del usuario a través de los asistentes
-                    String selectUserEventsQuery = "SELECT Events.*, COUNT(Assistants.idGuest) as AssistantsNumber " +
+                    String selectUserEventsQuery = "SELECT Events.*, COUNT(Attendance.idGuest) as AttendanceNumber " +
                             "FROM Events " +
-                            "JOIN Assistants ON Events.id = Assistants.idEvent " +
-                            "WHERE Assistants.idGuest = ? " +
+                            "JOIN Attendance ON Events.id = Attendance.idEvent " +
+                            "WHERE Attendance.idGuest = ? " +
                             "GROUP BY Events.id";
                     try (PreparedStatement selectUserEventsStmt = conn.prepareStatement(selectUserEventsQuery)) {
                         selectUserEventsStmt.setString(1, email);
@@ -199,8 +197,8 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                             String date = eventsResultSet.getString("date");
                             String startTime = eventsResultSet.getString("startTime");
                             String endTime = eventsResultSet.getString("endTime");
-                            int numAssistants = eventsResultSet.getInt("AssistantsNumber");
-                            userEvents.add(new Event(id, name, location, numAssistants, date, startTime, endTime));
+                            int numttendees = eventsResultSet.getInt("ttendeesNumber");
+                            userEvents.add(new Event(id, name, location, numttendees, date, startTime, endTime));
                         }
                     }
         } catch (SQLException e) {
@@ -216,8 +214,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            // Use a prepared statement to avoid SQL injection
-            String updateUserQuery = "UPDATE Utilizador SET name=?, email=?, Password=? WHERE email=?";
+            String updateUserQuery = "UPDATE Users SET name=?, email=?, Password=? WHERE email=?";
             try (PreparedStatement pstmt = conn.prepareStatement(updateUserQuery)) {
                 pstmt.setString(1, name);
                 pstmt.setString(2, email);
@@ -271,29 +268,24 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress)) {
-            // Verificar si hay asistentes para el evento
-            boolean hasAssistants = hasAssistants(connection, eventId);
-
-            // Si no hay asistentes, eliminar el evento
-            if (!hasAssistants) {
+            boolean hasttendees = hasttendees(connection, eventId);
+            if (!hasttendees) {
                 String deleteEventQuery = "DELETE FROM Events WHERE id = ?";
 
                 try (PreparedStatement preparedStatement = connection.prepareStatement(deleteEventQuery)) {
-                    // Establecer el parámetro de la consulta
                     preparedStatement.setInt(1, eventId);
 
                     System.out.println("Deleting event...");
 
-                    // Ejecutar la consulta
                     int rowsAffected = preparedStatement.executeUpdate();
                     if (rowsAffected > 0) {
-                        System.out.println("Evento eliminado");
+                        System.out.println("Event remove");
                     } else {
-                        System.out.println("Evento no encontrado para eliminar.");
+                        System.out.println("Event not found to remove.");
                     }
                 }
             } else {
-                System.out.println("No se puede eliminar el evento. Hay asistentes registrados.");
+                System.out.println("Event can not be removed. ttendees registered.");
             }
 
         } catch (SQLException e) {
@@ -305,7 +297,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         int rowsAffected = 0;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String deleteAttendanceQuery = "DELETE FROM Assistants WHERE idEvent = ? AND idGuest = ?";
+            String deleteAttendanceQuery = "DELETE FROM Attendance WHERE idEvent = ? AND idGuest = ?";
             try (PreparedStatement deleteAttendanceStmt = conn.prepareStatement(deleteAttendanceQuery)) {
                 deleteAttendanceStmt.setInt(1, eventId);
                 deleteAttendanceStmt.setString(2, userEmail);
@@ -327,7 +319,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     public boolean addUserToEvent(int eventId, String userEmail) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String checkAttendanceQuery = "SELECT COUNT(*) FROM Assistants WHERE idEvent = ? AND idGuest = ?";
+            String checkAttendanceQuery = "SELECT COUNT(*) FROM Attendance WHERE idEvent = ? AND idGuest = ?";
             try (PreparedStatement checkAttendanceStmt = conn.prepareStatement(checkAttendanceQuery)) {
                 checkAttendanceStmt.setInt(1, eventId);
                 checkAttendanceStmt.setString(2, userEmail);
@@ -343,7 +335,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                 }
             }
 
-            String addAttendanceQuery = "INSERT INTO Assistants (idEvent, idGuest) VALUES (?, ?)";
+            String addAttendanceQuery = "INSERT INTO Attendance (idEvent, idGuest) VALUES (?, ?)";
             try (PreparedStatement addAttendanceStmt = conn.prepareStatement(addAttendanceQuery)) {
                 addAttendanceStmt.setInt(1, eventId);
                 addAttendanceStmt.setString(2, userEmail);
@@ -369,11 +361,9 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress)) {
-            // Verificar si hay asistentes para el evento
-            boolean hasAssistants = hasAssistants(connection, eventId);
+            boolean hasttendees = hasttendees(connection, eventId);
 
-            // Si no hay asistentes, editar el evento
-            if (!hasAssistants) {
+            if (!hasttendees) {
                 String updateEventQuery = "UPDATE Events SET name=?, location=?, date=?, startTime=?, endTime=? WHERE id=?";
                 try (PreparedStatement preparedStatement = connection.prepareStatement(updateEventQuery)) {
                     preparedStatement.setString(1, newName);
@@ -385,17 +375,16 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
                     int rowsUpdated = preparedStatement.executeUpdate();
 
-                    // Imprimir información de depuración
                     System.out.println("Rows updated: " + rowsUpdated);
 
                     if (rowsUpdated > 0) {
-                        System.out.println("Evento actualizado exitosamente.");
+                        System.out.println("Event successfully updated.");
                     } else {
-                        System.out.println("No se encontró ningún evento con el ID proporcionado. La actualización falló.");
+                        System.out.println("No event was found with the provided ID. The update failed.");
                     }
                 }
             } else {
-                System.out.println("No se puede editar el evento. Hay asistentes registrados.");
+                System.out.println("Event cannot be edited. There are registered attendees.");
             }
 
         } catch (SQLException e) {
@@ -411,12 +400,12 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
                     // Obtener los eventos del usuario a través de los asistentes
-                    String selectUserAttendanceQuery = "SELECT Utilizador.name AS userName, Utilizador.email, " +
+                    String selectUserAttendanceQuery = "SELECT Users.name AS userName, Users.email, " +
                             "Events.name AS eventName, Events.location, Events.date, Events.startTime, Events.endTime " +
-                            "FROM Assistants " +
-                            "JOIN Utilizador ON Assistants.idGuest = Utilizador.email " +
-                            "JOIN Events ON Assistants.idEvent = Events.id " +
-                            "WHERE Assistants.idGuest = ?";
+                            "FROM Attendance " +
+                            "JOIN Users ON Attendance.idGuest = Users.email " +
+                            "JOIN Events ON Attendance.idEvent = Events.id " +
+                            "WHERE Attendance.idGuest = ?";
                     try (PreparedStatement selectUserAttendanceStmt = conn.prepareStatement(selectUserAttendanceQuery)) {
                         selectUserAttendanceStmt.setString(1, email);
                         ResultSet attendanceResultSet = selectUserAttendanceStmt.executeQuery();
@@ -448,12 +437,12 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String selectAttendanceQuery = "SELECT Utilizador.name AS userName, Utilizador.email, " +
+            String selectAttendanceQuery = "SELECT Users.name AS userName, Users.email, " +
                     "Events.name AS eventName, Events.location, Events.date, Events.startTime, Events.endTime " +
-                    "FROM Assistants " +
-                    "JOIN Utilizador ON Assistants.idGuest = Utilizador.email " +
-                    "JOIN Events ON Assistants.idEvent = Events.id " +
-                    "WHERE Assistants.idEvent = ?";
+                    "FROM Attendance " +
+                    "JOIN Users ON Attendance.idGuest = Users.email " +
+                    "JOIN Events ON Attendance.idEvent = Events.id " +
+                    "WHERE Attendance.idEvent = ?";
 
             try (PreparedStatement selectAttendanceStmt = conn.prepareStatement(selectAttendanceQuery)) {
                 selectAttendanceStmt.setInt(1, eventId);
@@ -595,10 +584,10 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
     }
 
-    private boolean hasAssistants(Connection connection, int eventId) throws SQLException {
+    private boolean hasttendees(Connection connection, int eventId) throws SQLException {
         // Verificar si hay asistentes para el evento
-        String checkAssistantsQuery = "SELECT COUNT(*) FROM Assistants WHERE idEvent = ?";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(checkAssistantsQuery)) {
+        String checkttendeesQuery = "SELECT COUNT(*) FROM Attendance WHERE idEvent = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(checkttendeesQuery)) {
             // Establecer el parámetro de la consulta
             preparedStatement.setInt(1, eventId);
 
