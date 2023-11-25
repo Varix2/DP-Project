@@ -15,11 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PrincipalServer extends UnicastRemoteObject implements PrincipalServerInterface {
-    private final String DBNAME = "javaProgramming.db";
+    private static final String DBNAME = "PD-database.db";
     Socket s;
     String dbUrl;
     final List<BackupServerInterface> backupServers;
-
+    private static String localDbPath;
 
     public PrincipalServer()throws RemoteException{
         this.backupServers = new ArrayList<>();
@@ -29,7 +29,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         int listeningPort;
         Socket toClient;
         Thread tcp,mcThread;
-        String dbUrl;
+        File dbDirectory;
         int registryPort;
         String servicioRMI,servicioRMIDatabase;
 
@@ -47,14 +47,31 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
 
         listeningPort = Integer.parseInt(args[0]);
-        dbUrl = args[1];
+        dbDirectory = new File(args[1]);
         registryPort = Integer.parseInt(args[3]);
         servicioRMI ="rmi://localhost:" + registryPort + "/" + args[2];
         servicioRMIDatabase = "rmi://localhost:2000/DB-service";
 
 
+        if(!dbDirectory.exists()){
+            System.out.println("A directoria " + dbDirectory + " nao existe!");
+            return;
+        }
 
-
+        if(!dbDirectory.isDirectory()){
+            System.out.println("O caminho " + dbDirectory + " nao se refere a uma directoria!");
+            return;
+        }
+        if(!dbDirectory.canWrite()){
+            System.out.println("Sem permissoes de escrita na directoria " + dbDirectory);
+            return;
+        }
+        try{
+            localDbPath = new File(dbDirectory.getPath() + File.separator + DBNAME).getCanonicalPath();
+        }catch(IOException ex){
+            System.out.println(ex);
+            return;
+        }
         /*
             CREATION OF REGISTRY LOCAL
          */
@@ -77,14 +94,23 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
          */
         DbOperations dbService = null;
         try {
-            dbService = new DbOperations(dbUrl);
+            dbService = new DbOperations(localDbPath);
             System.out.println("Servico <<dbService>> criado e em execucao...");
-
             // Registra la instancia en el registro RMI
             Naming.rebind(servicioRMIDatabase, dbService);
+
+            //Check if db exists
+            File db = new File(localDbPath);
+            if(!db.exists()){
+                System.out.println("The db doesn´t exist. Creating...");
+                dbService.createDB();
+            }
+            System.out.println("Connection established with database");
         } catch (RemoteException | MalformedURLException e) {
             throw new RuntimeException(e);
         }
+
+
 
         /*
             Creamos, ejecutamos y registramos servicio
@@ -121,7 +147,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             while(true) {
                 toClient = psSocket.accept();
 
-                tcp = new Thread(new TCPService(toClient, dbUrl), "Cliente"+ ++i);
+                tcp = new Thread(new TCPService(toClient, localDbPath), "Cliente"+ ++i);
                 tcp.start();
 
             }
@@ -153,43 +179,24 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
     @Override
     public synchronized byte[] transferDatabase() throws RemoteException {
-        String requestedCanonicalFilePath = null;
-        byte [] fileChunk = null;
-        File localDirectory = new File("C:/Users/Varix/IdeaProjects/PracticalProyect");
+        byte[] fileChunk = null;
+        try (FileInputStream fin = new FileInputStream(localDbPath);
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
 
-        try {
-            requestedCanonicalFilePath = new File(localDirectory+File.separator+DBNAME).getCanonicalPath();
+            byte[] buffer = new byte[4096]; // Ajusta el tamaño del búfer según sea necesario
+            int bytesRead;
 
-
-            if(!requestedCanonicalFilePath.startsWith(localDirectory.getCanonicalPath()+File.separator)){
-                System.out.println("Nao e' permitido aceder ao ficheiro " + requestedCanonicalFilePath + "!");
-                System.out.println("A directoria de base nao corresponde a " + localDirectory.getCanonicalPath()+"!");
+            while ((bytesRead = fin.read(buffer)) != -1) {
+                bos.write(buffer, 0, bytesRead);
             }
 
-            //BLOCK ANY OPERATION TO THE DATABASE
-
-                try (FileInputStream fin = new FileInputStream(requestedCanonicalFilePath);
-                     ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-
-                    byte[] buffer = new byte[4096]; // Adjust the buffer size as needed
-                    int bytesRead;
-
-                    while ((bytesRead = fin.read(buffer)) != -1) {
-                        bos.write(buffer, 0, bytesRead);
-                    }
-
-                    fileChunk = bos.toByteArray();
-
-                    /*Database Version controller
-                    DbOperations versionUpdate = new DbOperations(dbUrl);
-                    versionUpdate.versionController();
-                    */
-            }
+            fileChunk = bos.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return fileChunk;
     }
+
 
     @Override
     public void addBackupServer(BackupServerInterface observer) throws RemoteException {

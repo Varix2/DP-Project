@@ -23,4 +23,6 @@ public interface DbOperationsInterface extends Remote {
     List<Attendance> getUserAttendance(String email)throws RemoteException;
 
     Event getEvent(int eventId)throws RemoteException;
+
+    void createDB()throws RemoteException;
 }

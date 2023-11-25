@@ -145,8 +145,8 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
             String checkEnrollmnetQuery = "SELECT COUNT(*) FROM Assistants a "
-                                            + "INNER JOIN Events e ON a.idevent = e.id"
-                                            + "WHERE a.idGuest = ? AND ? BETWEEN e.start AND e.end";
+                                            + "INNER JOIN Events e ON a.idEvent = e.id"
+                                            + "WHERE a.idGuest = ? AND ? BETWEEN e.startTime AND e.endTime";
             try (PreparedStatement checkEnrollmentStmt = conn.prepareStatement(checkEnrollmnetQuery)) {
                 checkEnrollmentStmt.setString(1, email);
 
@@ -506,6 +506,66 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
 
         return null;
+    }
+
+    @Override
+    public void createDB() throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress);
+             Statement statement = connection.createStatement()) {
+
+            // USER TABLE
+            statement.execute("CREATE TABLE IF NOT EXISTS Users ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "name VARCHAR(50),"
+                    + "email VARCHAR(50) UNIQUE,"
+                    + "password VARCHAR(100),"
+                    + "roleId INTEGER,"
+                    + "FOREIGN KEY (roleId) REFERENCES Roles(id)"
+                    + ")");
+
+            // EVENTS TABLE
+            statement.execute("CREATE TABLE IF NOT EXISTS Events ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + "name VARCHAR(50),"
+                    + "location VARCHAR(100),"
+                    + "date DATE,"
+                    + "startTime DATETIME,"
+                    + "endTime DATETIME"
+                    + ")");
+
+            // ATTENDANCE TABLE
+            statement.execute("CREATE TABLE IF NOT EXISTS Attendance ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + "idEvent INTEGER,"
+                    + "idGuest VARCHAR(50),"
+                    + "FOREIGN KEY (idEvent) REFERENCES Events(id),"
+                    + "FOREIGN KEY (idGuest) REFERENCES Users(email)"
+                    + ")");
+
+            // ROLES TABLE
+            statement.execute("CREATE TABLE IF NOT EXISTS Roles ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + "roleName VARCHAR(30) UNIQUE"
+                    + ")");
+
+            // VERSION TABLE
+            statement.execute("CREATE TABLE IF NOT EXISTS Version ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "versionNumber INTEGER"
+                    + ")");
+
+            // INITIAL INSERTS
+            statement.execute("INSERT INTO Roles (roleName) VALUES ('admin')");
+            statement.execute("INSERT INTO Roles (roleName) VALUES ('user')");
+            statement.execute("INSERT INTO Version (versionNumber) VALUES (0)");
+            statement.execute("INSERT INTO Users (name, email, password, roleId) " +
+                    "VALUES ('admin', 'admin@example.com', '123', 1)");
+
+        } catch (SQLException e) {
+            System.err.println("Error creating tables: " + e.getMessage());
+        }
     }
 
 
