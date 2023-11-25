@@ -45,9 +45,7 @@ public class Client {
                 } else if (opcionMainMenu == 2) {
                         ca = userMenu.showLoginMenu();
                         sendAndReceive(oout, oin, ca);
-                    do {
-                        optionProfile = userMenu.showProfile(ca.getEmail());
-                    }while(optionProfile !=5);
+                        userMenu.showProfile(ca.getEmail());
                 }
             }while (opcionMainMenu !=3);
             //new LoginForm(socket).setVisible(true);

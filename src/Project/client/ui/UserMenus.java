@@ -16,10 +16,6 @@ import java.util.List;
 
 public class UserMenus {
     private final DbOperationsInterface dbOperations;
-    private int userId;
-    private String userName;
-    private String userEmail;
-
     public UserMenus() {
         try {
             dbOperations = (DbOperationsInterface) Naming.lookup("rmi://localhost:2000/DB-service");
@@ -35,7 +31,6 @@ public class UserMenus {
 
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
             System.out.println("Login Menu");
             System.out.print("Name: ");
             name = reader.readLine();
@@ -49,14 +44,13 @@ public class UserMenus {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new ClientRegistryData(name, id, email, passwd);
+        return new ClientRegistryData(name, email, passwd);
     }
 
 
     public int mainMenu() {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
             int option;
             System.out.println("\n********************");
             System.out.println("Main Menu");
@@ -105,8 +99,8 @@ public class UserMenus {
             System.out.println("\nUser Profile:");
             System.out.println("--------------------------------------");
             System.out.println("Username: " + userData[0]);
-            System.out.println("Identification: " + userData[1]);
-            System.out.println("Email: " + userData[2]);
+            //System.out.println("Identification: " + userData[1]);
+            System.out.println("Email: " + userData[1]);
 
             System.out.println("<Enter> to go back to your profile");
             System.out.println();
@@ -121,47 +115,49 @@ public class UserMenus {
     }
 
 
-    public int showProfile(String email) {
+    public void showProfile(String email) {
         int option;
+        String userEmail = email;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-            System.out.println("\nWelcome "+ email);
-            System.out.println("1. See your data");
-            System.out.println("2. Edit your data");
-            System.out.println("3. Consult your events");
-            System.out.println("4. Consult events");
-            System.out.println("5. Exit");
             do {
+                System.out.println("\nWelcome " + userEmail);
+                System.out.println("1. See your data");
+                System.out.println("2. Edit your data");
+                System.out.println("3. Consult your events");
+                System.out.println("4. Consult events");
+                System.out.println("5. Exit");
                 System.out.println("----------------------------");
                 System.out.print("Choose an option: ");
 
                 option = Integer.parseInt(reader.readLine());
 
-                if (option < 1 || option > 5) {
-                    System.out.println("ENTER A VALID OPTION");
+                switch (option) {
+                    case 1:
+                        showUserData(userEmail);
+                        break;
+                    case 2:
+                        userEmail = editUserData(userEmail);
+                        break;
+                    case 3:
+                        consultYourEvents(userEmail);
+                        break;
+                    case 4:
+                        consultEvents(userEmail);
+                        break;
+                    case 5:
+                        System.out.println("Exiting...");
+                        break;
+                    default:
+                        System.out.println("ENTER A VALID OPTION");
+                        break;
                 }
-            } while (option < 1 || option > 5);
-
-            switch (option) {
-                case 1:
-                    showUserData(email);
-                    break;
-                case 2:
-                    editUserData(email);
-                    break;
-                case 3:
-                    consultYourEvents(email);
-                    break;
-                case 4:
-                    consultEvents(email);
-                    break;
-            }
+            } while (option != 5);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return option;
     }
+
 
     private void consultYourEvents(String email) {
         List<Event> events;
@@ -182,7 +178,7 @@ public class UserMenus {
         }
     }
 
-    private void editUserData(String email) {
+    private String editUserData(String email) {
         String newName, newEmail, newPassword;
         int newID;
         try {
@@ -206,13 +202,13 @@ public class UserMenus {
             throw new RuntimeException(e);
         }
 
-
         try {
-            dbOperations.updateUserData(newName, newID, newEmail, newPassword, email);
-
+            dbOperations.updateUserData(newName, newEmail, newPassword, email);
+            return newEmail;
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
+
     }
 
     public void consultEvents(String email) {

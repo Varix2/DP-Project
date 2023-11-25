@@ -30,12 +30,15 @@ public class TCPService implements Runnable{
             receivedMsg = in.readObject();
             if(receivedMsg instanceof ClientRegistryData regisData){
                 System.out.println("Registration information arrive: " +
-                        regisData.getId_number() + " / " + regisData.getName() +
-                        " / " + regisData.getEmail() + " / " + regisData.getPassword());
+                        regisData.getName() + " / " + regisData.getEmail() + " / " + regisData.getPassword());
 
                 //Insert the data from the client in the database
-                dbOperations.insertNewUser(regisData.getName(),regisData.getId_number(),regisData.getEmail(),regisData.getPassword());
-                out.writeObject("You correctly registered");
+                int insertState = dbOperations.insertNewUser(regisData.getName(),regisData.getEmail(),regisData.getPassword());
+                if(insertState == 1){
+                    out.writeObject("You correctly registered");
+                } else {
+                    out.writeObject("Registration fail");
+                }
                 out.flush();
             } else{
                 ClientAuthenticationData authData = (ClientAuthenticationData) receivedMsg;
