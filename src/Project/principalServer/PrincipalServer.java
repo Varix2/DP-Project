@@ -134,8 +134,13 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         /*
             START MULTICAST SERVICE
          */
-
-        mcThread = new Thread(new MulticastService(new Heartbeat(registryPort,servicioRMI,1)));
+        int dbVersion;
+        try {
+            dbVersion = dbService.getDbVersion();
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
+        mcThread = new Thread(new MulticastService(registryPort,servicioRMI,dbService));
         mcThread.start();
 
         /*

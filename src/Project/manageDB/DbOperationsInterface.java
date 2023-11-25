@@ -25,4 +25,6 @@ public interface DbOperationsInterface extends Remote {
     Event getEvent(int eventId)throws RemoteException;
 
     void createDB()throws RemoteException;
+
+    int getDbVersion()throws RemoteException;
 }

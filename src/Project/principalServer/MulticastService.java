@@ -1,5 +1,7 @@
 package Project.principalServer;
 
+import Project.manageDB.DbOperations;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -7,11 +9,15 @@ import java.net.*;
 
 public class MulticastService implements Runnable{
 
-    private final Heartbeat heartbeat;
+    private DbOperations dbOperations;
+    private int registryPort;
+    private String servicioRMI;
     MulticastSocket socket;
 
-    public MulticastService(Heartbeat heartbeat){
-        this.heartbeat = heartbeat;
+    public MulticastService(int registryPort, String servicioRMI,DbOperations dbOperations){
+        this.dbOperations = dbOperations;
+        this.registryPort = registryPort;
+        this.servicioRMI = servicioRMI;
         try {
             socket = new MulticastSocket();
         } catch (IOException e) {
@@ -19,8 +25,10 @@ public class MulticastService implements Runnable{
         }
     }
 
+
     @Override
     public void run() {
+
         DatagramPacket packet;
         InetAddress multicastGroup;
         String MULTICAST_ADDRESS = "230.44.44.44";
@@ -35,13 +43,15 @@ public class MulticastService implements Runnable{
             //SERIALISATION
             try(ByteArrayOutputStream buff = new ByteArrayOutputStream();
                 ObjectOutputStream out = new ObjectOutputStream(buff)) {
-
-                out.writeObject(heartbeat);
+                int versionNumber = dbOperations.getDbVersion();
+                out.writeObject(new Heartbeat(registryPort,servicioRMI, versionNumber));
 
                 packet = new DatagramPacket(buff.toByteArray(), buff.size(), multicastGroup, MULTICAST_PORT);
                 socket.send(packet);
 
                 System.out.println("Heartbeat message sent.");
+                System.out.println("Current db version: " + versionNumber);
+
                 Thread.sleep(10000);
 
             } catch (IOException e) {

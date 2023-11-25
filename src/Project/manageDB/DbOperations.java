@@ -52,6 +52,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     System.out.println("Insertion failed");
                 }
             }
+            updateVersion();
 
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
@@ -140,7 +141,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     }
 
     @Override
-    public void joinAnEvent(String email, int eventID) throws RemoteException {
+    public synchronized void joinAnEvent(String email, int eventID) throws RemoteException {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
@@ -170,13 +171,14 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     }
                 }
             }
+            updateVersion();
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
     }
 
     @Override
-    public List<Event> getUserEvents(String email) throws RemoteException {
+    public synchronized List<Event> getUserEvents(String email) throws RemoteException {
         List<Event> userEvents = new ArrayList<>();
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
@@ -210,7 +212,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
 
     @Override
-    public void updateUserData(String name, String email, String passwd, String oldEmail) throws RemoteException {
+    public synchronized void updateUserData(String name, String email, String passwd, String oldEmail) throws RemoteException {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
@@ -230,35 +232,9 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     System.out.println("No user found with the given email. Update failed.");
                 }
             }
+            updateVersion();
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
-        }
-
-    }
-
-    public synchronized void versionController(){
-        String dbAddress = "jdbc:sqlite:" + dbUrl;
-
-        try (Connection conn = DriverManager.getConnection(dbAddress)){
-            String insertVersionQuery = "INSERT INTO your_table (column2) VALUES (strftime('%Y-%m-%d %H:%M:%S', 'now'))";
-            try (PreparedStatement preparedStatement = conn.prepareStatement(insertVersionQuery, Statement.RETURN_GENERATED_KEYS)){
-                int rowsAffected = preparedStatement.executeUpdate();
-
-                if (rowsAffected > 0){
-                    System.out.println("Rows inserted succefully.");
-
-                    try (var generatedKeys = preparedStatement.getGeneratedKeys()) {
-                        if (generatedKeys.next()) {
-                            int generatedId = generatedKeys.getInt(1);
-                            System.out.println("Generated ID of backup:" + generatedId);
-                        }
-                    }
-                } else {
-                    System.out.println("No ID generated for the backup.");
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
 
     }
@@ -268,8 +244,8 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress)) {
-            boolean hasttendees = hasttendees(connection, eventId);
-            if (!hasttendees) {
+            boolean hasAttendees = hasAttendees(connection, eventId);
+            if (!hasAttendees) {
                 String deleteEventQuery = "DELETE FROM Events WHERE id = ?";
 
                 try (PreparedStatement preparedStatement = connection.prepareStatement(deleteEventQuery)) {
@@ -287,13 +263,13 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
             } else {
                 System.out.println("Event can not be removed. ttendees registered.");
             }
-
+        updateVersion();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
-    public int deleteUserFromEvent(int eventId, String userEmail) {
+    public synchronized int deleteUserFromEvent(int eventId, String userEmail) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         int rowsAffected = 0;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
@@ -310,13 +286,14 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     System.out.println("User is not registered for the event.");
                 }
             }
+            updateVersion();
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
         return rowsAffected;
     }
 
-    public boolean addUserToEvent(int eventId, String userEmail) {
+    public synchronized boolean addUserToEvent(int eventId, String userEmail) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
             String checkAttendanceQuery = "SELECT COUNT(*) FROM Attendance WHERE idEvent = ? AND idGuest = ?";
@@ -349,6 +326,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     return false;
                 }
             }
+            updateVersion();
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
@@ -357,13 +335,13 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
 
     @Override
-    public void updateEvent(int eventId, String newName, String newLocation, LocalDate newDate, String newStartTime, String newEndTime)throws RemoteException {
+    public synchronized void updateEvent(int eventId, String newName, String newLocation, LocalDate newDate, String newStartTime, String newEndTime)throws RemoteException {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress)) {
-            boolean hasttendees = hasttendees(connection, eventId);
+            boolean hasAttendees = hasAttendees(connection, eventId);
 
-            if (!hasttendees) {
+            if (!hasAttendees) {
                 String updateEventQuery = "UPDATE Events SET name=?, location=?, date=?, startTime=?, endTime=? WHERE id=?";
                 try (PreparedStatement preparedStatement = connection.prepareStatement(updateEventQuery)) {
                     preparedStatement.setString(1, newName);
@@ -386,14 +364,14 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
             } else {
                 System.out.println("Event cannot be edited. There are registered attendees.");
             }
-
+            updateVersion();
         } catch (SQLException e) {
             // Manejar excepciones
             System.out.println("SQLException: " + e.getMessage());
         }
     }
 
-    public List<Attendance> getUserAttendance(String email) {
+    public synchronized List<Attendance> getUserAttendance(String email) {
         List<Attendance> userAttendance = new ArrayList<>();
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -430,7 +408,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     }
 
 
-    public List<Attendance> getEventAttendance(int eventId) throws RemoteException {
+    public synchronized List<Attendance> getEventAttendance(int eventId) throws RemoteException {
         List<Attendance> attendanceList = new ArrayList<>();
 
         String dbAddress = "jdbc:sqlite:" + dbUrl;
@@ -470,7 +448,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
 
 
     @Override
-    public Event getEvent(int eventId) throws RemoteException {
+    public synchronized Event getEvent(int eventId) throws RemoteException {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
@@ -498,7 +476,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     }
 
     @Override
-    public void createDB() throws RemoteException {
+    public synchronized void createDB() throws RemoteException {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress);
@@ -557,6 +535,24 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
     }
 
+    @Override
+    public synchronized int getDbVersion() throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+        int versionNumber = 0;
+        try (Connection connection = DriverManager.getConnection(dbAddress);
+             Statement statement = connection.createStatement()) {
+
+            ResultSet resultSet = statement.executeQuery("SELECT versionNumber FROM Version");
+            if (resultSet.next()) {
+                versionNumber = resultSet.getInt("versionNumber");
+
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return versionNumber;
+    }
+
 
     @Override
     public synchronized void createEvent(String name, String location, LocalDate date, String startTime, String endTime) throws RemoteException {
@@ -579,12 +575,13 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                 // Ejecutar la consulta
                 preparedStatement.executeUpdate();
             }
+            updateVersion();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    private boolean hasttendees(Connection connection, int eventId) throws SQLException {
+    private synchronized boolean hasAttendees(Connection connection, int eventId) throws SQLException {
         // Verificar si hay asistentes para el evento
         String checkttendeesQuery = "SELECT COUNT(*) FROM Attendance WHERE idEvent = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(checkttendeesQuery)) {
@@ -600,6 +597,17 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
             }
         }
         return false;
+    }
+    private synchronized void updateVersion() {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+        try (Connection connection = DriverManager.getConnection(dbAddress);
+             Statement statement = connection.createStatement()) {
+
+            statement.executeUpdate("UPDATE Version SET versionNumber = versionNumber + 1");
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
