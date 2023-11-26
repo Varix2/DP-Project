@@ -1,5 +1,9 @@
 package Project.manageDB;
 
+import Project.client.exceptions.AuthenticationErrorException;
+import Project.manageDB.data.Attendance;
+import Project.manageDB.data.Event;
+
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.time.LocalDate;
@@ -8,11 +12,11 @@ import java.util.List;
 public interface DbOperationsInterface extends Remote {
     String[] getUserData(String email) throws RemoteException;
     void updateUserData(String newName, String newEmail, String newPasswd, String oldEmail) throws RemoteException;
-
+    boolean isAdmin(String email) throws RemoteException;
     List<Event> getAllEvents() throws RemoteException;
     void joinAnEvent(String email, int eventID) throws RemoteException;
     List<Event> getUserEvents(String email) throws RemoteException;
-    boolean authenticateUser(String email, String password) throws RemoteException;
+    boolean authenticateUser(String email, String password) throws RemoteException, AuthenticationErrorException;
     void createEvent(String name, String location, LocalDate date, String startTime, String endTime) throws RemoteException;
     void deleteEvent(int eventId) throws RemoteException;
     int deleteUserFromEvent(int eventId, String userEmail)throws RemoteException;

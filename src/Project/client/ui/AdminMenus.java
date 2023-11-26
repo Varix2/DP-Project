@@ -1,8 +1,8 @@
 package Project.client.ui;
 
-import Project.manageDB.Attendance;
+import Project.manageDB.data.Attendance;
 import Project.manageDB.DbOperationsInterface;
-import Project.manageDB.Event;
+import Project.manageDB.data.Event;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -24,11 +24,12 @@ public class AdminMenus {
         }
     }
 
-    public void showProfile() {
+    public int showProfile() {
+        int option;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-            int option;
+
             System.out.println("\n********************");
             System.out.println("Main Menu");
             System.out.println("1. Create event");
@@ -42,16 +43,17 @@ public class AdminMenus {
             System.out.println("9. Obtain a CSV file of user events");
             System.out.println("10. Delete an attendance");
             System.out.println("11. Create an attendance");
+            System.out.println("12. Exit");
             do {
                 System.out.println("----------------------------");
                 System.out.print("Choose an option: ");
 
                 option = Integer.parseInt(reader.readLine());
 
-                if (option < 1 || option > 11) {
+                if (option < 1 || option > 12) {
                     System.out.println("ENTER A VALID OPTION");
                 }
-            } while (option < 1 || option > 11);
+            } while (option < 1 || option > 12);
 
             switch (option) {
                 case 1:
@@ -89,6 +91,7 @@ public class AdminMenus {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return option;
     }
 
     private void addAttendance() {

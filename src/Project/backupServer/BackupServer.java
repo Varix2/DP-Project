@@ -1,6 +1,7 @@
 package Project.backupServer;
 
-import Project.principalServer.Heartbeat;
+import Project.principalServer.data.Heardbeat;
+import Project.principalServer.HeardbeatObserversInterface;
 import Project.principalServer.PrincipalServerInterface;
 
 import java.io.*;
@@ -11,7 +12,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
 
-public class BackupServer extends UnicastRemoteObject implements BackupServerInterface {
+public class BackupServer extends UnicastRemoteObject implements HeardbeatObserversInterface {
     private static final String MULTICAST_ADDRESS = "230.44.44.44";
     private static final int MULTICAST_PORT = 4444;
     static String objUrl = "rmi://localhost:4444/p1";
@@ -22,7 +23,7 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
     }
 
     public static void main(String[] args) {
-        Heartbeat heartbeat;
+        Heardbeat heardbeat;
         PrincipalServerInterface serverService;
         /*
             OPTAINING THE DATABASE BACKUP
@@ -42,10 +43,7 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
             RMI CALLBACK
          */
         try {
-            BackupServer observer = new BackupServer();
-            System.out.println("Servicio <<backupServer>> creado y en ejecucion");
-
-            serverService.addBackupServer(new BackupServer());
+            serverService.addObserver(new BackupServer());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -68,16 +66,16 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
 
                 try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()))) {
 
-                    heartbeat = (Heartbeat) in.readObject();
+                    heardbeat = (Heardbeat) in.readObject();
 
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
 
-                System.out.println("Heartbeat: ");
-                System.out.println("\tDatabase version: " + heartbeat.getDbVersion() + "\n" +
-                        "\tRMI Services Name: " + heartbeat.getRmiServicesName() + "\n" +
-                        "\tRegistry port: " + heartbeat.getRegistryPort()
+                System.out.println("Heardbeat: ");
+                System.out.println("\tDatabase version: " + heardbeat.getDbVersion() + "\n" +
+                        "\tRMI Services Name: " + heardbeat.getRmiServicesName() + "\n" +
+                        "\tRegistry port: " + heardbeat.getRegistryPort()
                 );
             }
         } catch (IOException e) {
@@ -105,7 +103,7 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
     }
 
     @Override
-    public synchronized void notifyNewOperation(Heartbeat hb) throws RemoteException {
+    public synchronized void notifyNewOperation(Heardbeat hb) throws RemoteException {
         try {
             String objUrl = "rmi://localhost:" + hb.getRegistryPort() + "/" + hb.getRmiServicesName();
             PrincipalServerInterface serverService = (PrincipalServerInterface) Naming.lookup(objUrl);

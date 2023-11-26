@@ -1,6 +1,7 @@
-package Project.principalServer;
+package Project.principalServer.concurrentServices;
 
 import Project.manageDB.DbOperations;
+import Project.principalServer.data.Heardbeat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,12 +45,12 @@ public class MulticastService implements Runnable{
             try(ByteArrayOutputStream buff = new ByteArrayOutputStream();
                 ObjectOutputStream out = new ObjectOutputStream(buff)) {
                 int versionNumber = dbOperations.getDbVersion();
-                out.writeObject(new Heartbeat(registryPort,servicioRMI, versionNumber));
+                out.writeObject(new Heardbeat(registryPort,servicioRMI, versionNumber));
 
                 packet = new DatagramPacket(buff.toByteArray(), buff.size(), multicastGroup, MULTICAST_PORT);
                 socket.send(packet);
 
-                System.out.println("Heartbeat message sent.");
+                System.out.println("Heardbeat message sent.");
                 System.out.println("Current db version: " + versionNumber);
 
                 Thread.sleep(10000);

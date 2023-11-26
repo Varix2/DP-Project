@@ -1,4 +1,4 @@
-package Project.manageDB;
+package Project.manageDB.data;
 
 import java.io.Serializable;
 

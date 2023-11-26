@@ -1,16 +1,16 @@
 package Project.principalServer;
 
-import Project.backupServer.BackupServerInterface;
+import Project.principalServer.data.Heardbeat;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface PrincipalServerInterface extends Remote {
 
-    void pruebaRMI(Heartbeat hb)throws RemoteException;
+    void pruebaRMI(Heardbeat hb)throws RemoteException;
     byte[] transferDatabase() throws  RemoteException;
 
-    void addBackupServer(BackupServerInterface observer)throws RemoteException;
+    void addObserver(HeardbeatObserversInterface observer)throws RemoteException;
 
-    void removeBackupServer(BackupServerInterface observer)throws RemoteException;
+    void removeObserver(HeardbeatObserversInterface observer)throws RemoteException;
 }

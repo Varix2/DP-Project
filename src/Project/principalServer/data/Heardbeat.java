@@ -1,13 +1,13 @@
-package Project.principalServer;
+package Project.principalServer.data;
 
 import java.io.Serializable;
 
-public class Heartbeat implements Serializable {
+public class Heardbeat implements Serializable {
     private final int registryPort;
     private final String rmiServicesName;
     private final int dbVersion;
 
-    public Heartbeat(int registryPort, String rmiServicesName, int dbVersion) {
+    public Heardbeat(int registryPort, String rmiServicesName, int dbVersion) {
         this.registryPort = registryPort;
         this.rmiServicesName = rmiServicesName;
         this.dbVersion = dbVersion;

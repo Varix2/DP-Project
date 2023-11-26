@@ -1,28 +1,84 @@
 package Project.client.ui;
 
-import Project.client.ClientAuthenticationData;
-import Project.client.ClientRegistryData;
+import Project.client.data.ClientAuthenticationData;
+import Project.client.data.ClientRegistryData;
+import Project.client.exceptions.AuthenticationErrorException;
 import Project.manageDB.DbOperationsInterface;
-import Project.manageDB.Event;
+import Project.manageDB.data.Event;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.Socket;
+import java.net.SocketException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 
-public class UserMenus {
+public class TextUI {
     private final DbOperationsInterface dbOperations;
-    public UserMenus() {
+    InetAddress serverAddress;
+    int tcpPort;
+    AdminMenus adminMenus;
+    public TextUI(InetAddress serverAddress, int tcpPort) {
+        this.serverAddress = serverAddress;
+        this.tcpPort = tcpPort;
+        this.adminMenus = new AdminMenus();
         try {
             dbOperations = (DbOperationsInterface) Naming.lookup("rmi://localhost:2000/DB-service");
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
             throw new RuntimeException(e);
         }
 
+    }
+    public void run() {
+        try (
+                Socket socket = new Socket(serverAddress, tcpPort);
+                ObjectInputStream oin = new ObjectInputStream(socket.getInputStream());
+                ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream()))
+        {
+            //socket.setSoTimeout(TIMEOUT * 1000);
+            int opcionMainMenu;
+            int optionProfile;
+            //adminMenu.showProfile();
+            do {
+                opcionMainMenu = mainMenu();
+                try {
+                    if (opcionMainMenu == 1) {
+                        ClientRegistryData cr = showRegistryMenu();
+                        sendAndReceive(out, oin, cr);
+                    } else if (opcionMainMenu == 2) {
+                        ClientAuthenticationData ca = showLoginMenu();
+                        out.writeObject(ca);
+                        out.flush();
+                        Boolean authState = (Boolean) oin.readObject();
+                        if (!authState) {
+                            throw new AuthenticationErrorException("Email or password wrong");
+                        }
+                        if (dbOperations.isAdmin(ca.getEmail())) {
+                            int option;
+                            do {
+                                option = adminMenus.showProfile();
+                            } while (option != 12);
+                        } else {
+                            showProfile(ca.getEmail());
+                        }
+                    }
+                } catch (AuthenticationErrorException e) {
+                    System.err.println(e);
+                }
+            } while (opcionMainMenu != 3);
+
+        } catch (SocketException e) {
+            System.err.println("Error: " + e);
+        } catch (NumberFormatException e) {
+            System.err.println("You must write a number ");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public ClientRegistryData showRegistryMenu() {
@@ -43,6 +99,8 @@ public class UserMenus {
 
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NumberFormatException e){
+            System.err.println("The identification only accepts numbers ");
         }
         return new ClientRegistryData(name, id,email, passwd);
     }
@@ -269,7 +327,17 @@ public class UserMenus {
         }
     }
 
-
+    private static void sendAndReceive(ObjectOutputStream out, ObjectInputStream oin, Object obj)
+    {
+        try {
+            out.writeObject(obj);
+            out.flush();
+            String response = (String) oin.readObject();
+            System.out.println(response);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
     private void clearConsole(){
         try {
             new ProcessBuilder("clear").inheritIO().start().waitFor();

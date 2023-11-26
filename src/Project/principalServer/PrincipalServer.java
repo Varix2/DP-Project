@@ -1,9 +1,10 @@
 package Project.principalServer;
 
 
-import Project.backupServer.BackupServerInterface;
-
 import Project.manageDB.DbOperations;
+import Project.principalServer.concurrentServices.MulticastService;
+import Project.principalServer.concurrentServices.TCPService;
+import Project.principalServer.data.Heardbeat;
 
 import java.io.*;
 import java.net.*;
@@ -18,11 +19,11 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
     private static final String DBNAME = "PD-database.db";
     Socket s;
     String dbUrl;
-    final List<BackupServerInterface> backupServers;
+    final List<HeardbeatObserversInterface> observers;
     private static String localDbPath;
 
     public PrincipalServer()throws RemoteException{
-        this.backupServers = new ArrayList<>();
+        this.observers = new ArrayList<>();
 
     }
     public static void main(String[] args){
@@ -151,10 +152,11 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
         try(ServerSocket psSocket = new ServerSocket(listeningPort)){
             int i = 0;
+            System.out.println();
             while(true) {
                 toClient = psSocket.accept();
 
-                tcp = new Thread(new TCPService(toClient, localDbPath), "Cliente"+ ++i);
+                tcp = new Thread(new TCPService(toClient,servicioRMI, localDbPath), "Cliente"+ ++i);
                 tcp.start();
 
             }
@@ -165,12 +167,12 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
     }
 
     @Override
-    public void pruebaRMI(Heartbeat hb) throws RemoteException {
+    public void pruebaRMI(Heardbeat hb) throws RemoteException {
         int i;
 
-        List<BackupServerInterface> backupServersToRemove = new ArrayList<>();
+        List<HeardbeatObserversInterface> backupServersToRemove = new ArrayList<>();
 
-        for(BackupServerInterface backupServer:backupServers){
+        for(HeardbeatObserversInterface backupServer:observers){
             try{
                 backupServer.notifyNewOperation(hb);
             }catch (RemoteException e){
@@ -179,8 +181,8 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             }
         }
 
-        synchronized (backupServers){
-            backupServers.removeAll(backupServersToRemove);
+        synchronized (observers){
+            observers.removeAll(backupServersToRemove);
         }
     }
 
@@ -206,12 +208,21 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
 
     @Override
-    public void addBackupServer(BackupServerInterface observer) throws RemoteException {
-        backupServers.add(observer);
+    public void addObserver(HeardbeatObserversInterface observer) throws RemoteException {
+        synchronized (observers){
+            if(!observers.contains(observer)) {
+                observers.add(observer);
+                System.out.println("+ um observador");
+            }
+        }
     }
 
     @Override
-    public void removeBackupServer(BackupServerInterface observer) throws RemoteException {
-        backupServers.remove(observer);
+    public void removeObserver(HeardbeatObserversInterface observer) throws RemoteException {
+        synchronized (observers){
+            if(observers.remove(observer)){
+                System.out.println("- um observador");
+            }
+        }
     }
 }

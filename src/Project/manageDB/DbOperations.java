@@ -1,6 +1,9 @@
 package Project.manageDB;
 
-import Project.principalServer.Heartbeat;
+import Project.client.exceptions.AuthenticationErrorException;
+import Project.manageDB.data.Attendance;
+import Project.manageDB.data.Event;
+import Project.principalServer.data.Heardbeat;
 import Project.principalServer.PrincipalServerInterface;
 
 import java.net.MalformedURLException;
@@ -71,7 +74,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                 }
             }
             updateVersion();
-            serverService.pruebaRMI(new Heartbeat(4444,"p1",getDbVersion()));
+            serverService.pruebaRMI(new Heardbeat(4444,"p1",getDbVersion()));
 
 
         } catch (SQLException e) {
@@ -83,7 +86,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
     }
 
 
-    public synchronized boolean authenticateUser(String email, String password) {
+    public synchronized boolean authenticateUser(String email, String password) throws AuthenticationErrorException {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
@@ -103,8 +106,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
         }
-
-        throw new RuntimeException("Authentication failed for the user: " + email);
+        return false;
     }
 
 
@@ -138,7 +140,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         List<Event> events = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String selectEventsQuery = "SELECT Events.*, COUNT(Attendance.idGuest) as AttendanceNumber " +
+            String selectEventsQuery = "SELECT Events.*, COUNT(Attendance.idGuest) as AttendeesNumber " +
                     "FROM Events " +
                     "LEFT JOIN Attendance ON Events.id = Attendance.idEvent " +
                     "GROUP BY Events.id";
@@ -152,8 +154,8 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     String date = resultSet.getString("date");
                     String startTime = resultSet.getString("startTime");
                     String endTime = resultSet.getString("endTime");
-                    int numttendees = resultSet.getInt("ttendeesNumber");
-                    events.add(new Event(id, name, location, numttendees,date, startTime, endTime));
+                    int numAttendees = resultSet.getInt("AttendeesNumber");
+                    events.add(new Event(id, name, location, numAttendees,date, startTime, endTime));
                 }
             }
         } catch (SQLException e) {
@@ -260,6 +262,26 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
         }
 
     }
+    @Override
+    public boolean isAdmin(String email) throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection conn = DriverManager.getConnection(dbAddress)) {
+            String isAdminQuery = "SELECT Users.roleId, Roles.id " +
+                    "FROM Users " +
+                    "JOIN Roles ON Users.roleId = Roles.id " +
+                    "WHERE Users.email = ? AND Roles.roleName = 'admin'";
+            try (PreparedStatement pstmt = conn.prepareStatement(isAdminQuery)) {
+                pstmt.setString(1, email);
+                ResultSet resultSet = pstmt.executeQuery();
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 
     @Override
     public synchronized void deleteEvent(int eventId) throws RemoteException {
