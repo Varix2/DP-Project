@@ -42,7 +42,10 @@ public class Client {
                 opcionMainMenu = userMenu.mainMenu();
                 if (opcionMainMenu == 1) {
                     cr = userMenu.showRegistryMenu();
-                    sendAndReceive(out, oin, cr);
+                    out.writeObject(cr);
+                    out.flush();
+                    response = (String) oin.readObject();
+                    System.out.println(response);
                 } else if (opcionMainMenu == 2) {
                         ca = userMenu.showLoginMenu();
                         userMenu.showProfile(ca.getEmail());
@@ -54,6 +57,8 @@ public class Client {
             System.err.println("Error: "+e);
         }catch (IOException e) {
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 

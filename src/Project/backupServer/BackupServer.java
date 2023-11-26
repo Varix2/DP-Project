@@ -9,10 +9,14 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.sql.*;
 
-public class BackupServer extends UnicastRemoteObject implements BackupServerInterface{
+public class BackupServer extends UnicastRemoteObject implements BackupServerInterface {
     private static final String MULTICAST_ADDRESS = "230.44.44.44";
     private static final int MULTICAST_PORT = 4444;
+    static String objUrl = "rmi://localhost:4444/p1";
+    static File localDirectory;
+    static String filePath;
 
     protected BackupServer() throws RemoteException {
     }
@@ -20,56 +24,32 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
     public static void main(String[] args) {
         Heartbeat heartbeat;
         PrincipalServerInterface serverService;
-        byte[] dbBackupFile;
-
-        String filePath;
-
         /*
             OPTAINING THE DATABASE BACKUP
          */
         try {
-            String objUrl = "rmi://localhost:4444/p1";
             serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
+            localDirectory = new File(args[0]);
+
+            getDbBackup(localDirectory, serverService);
+        } catch (MalformedURLException | NotBoundException | RemoteException ex) {
+            throw new RuntimeException(ex);
+        }
 
 
-            String fileName = "backupFile.db";
-            File localDirectory = new File(args[0]);
-            filePath = new File(localDirectory.getPath()+File.separator+fileName).getCanonicalPath();
-            try(FileOutputStream fout = new FileOutputStream(filePath)/*...*/) {
-                System.out.println("BACKUP FILE " + filePath + " CREATED.");
-
-                dbBackupFile = serverService.transferDatabase();
-                fout.write(dbBackupFile);
-
-                System.out.println("BACKUP (" + fileName + ") TRANSFER COMPLETE.");
-            }
 
         /*
             RMI CALLBACK
          */
-
+        try {
             BackupServer observer = new BackupServer();
             System.out.println("Servicio <<backupServer>> creado y en ejecucion");
 
             serverService.addBackupServer(new BackupServer());
-
-            System.out.println("<Enter> para terminar");
-            System.out.println();
-            System.in.read();
-
-            serverService.removeBackupServer(observer);
-            UnicastRemoteObject.unexportObject(observer, true);
-        } catch (IOException | NotBoundException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        //JUST A TEST TO KNOW IF IT WORKS
-        try {
-            System.out.println("PRUEBA DE SI FUNCIONA CALLBACK. <<JUST FOR DEBUG>>");
-            serverService.pruebaRMI("OJSHKJHDKHDKKHDHKHDGHKDGHJD");
-        } catch (RemoteException e) {
-            throw new RuntimeException(e);
-        }
 
         try {
             InetAddress group = InetAddress.getByName(MULTICAST_ADDRESS);
@@ -105,8 +85,57 @@ public class BackupServer extends UnicastRemoteObject implements BackupServerInt
         }
     }
 
+    public synchronized static void getDbBackup(File localDirectory, PrincipalServerInterface serverService) {
+
+        String fileName = "backupFile.db";
+        try {
+            filePath = new File(localDirectory.getPath() + File.separator + fileName).getCanonicalPath();
+            try (FileOutputStream fout = new FileOutputStream(filePath)) {
+                System.out.println("BACKUP FILE " + filePath + " CREATED.");
+
+                byte[] dbBackupFile = serverService.transferDatabase();
+                fout.write(dbBackupFile);
+
+                System.out.println("BACKUP (" + fileName + ") TRANSFER COMPLETE.");
+            }
+            System.out.println("Backup made successfully");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
-    public void notifyNewOperation(String msg) {
-    System.out.println(msg);
+    public synchronized void notifyNewOperation(Heartbeat hb) throws RemoteException {
+        try {
+            String objUrl = "rmi://localhost:" + hb.getRegistryPort() + "/" + hb.getRmiServicesName();
+            PrincipalServerInterface serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
+            if(hb.getDbVersion() == getDbVersion()){
+                getDbBackup(localDirectory, serverService);
+            }
+
+
+        } catch (MalformedURLException | NotBoundException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static synchronized int getDbVersion() throws RemoteException {
+        String dbAddress = "jdbc:sqlite:" + filePath;
+        int versionNumber = 0;
+        try (Connection connection = DriverManager.getConnection(dbAddress);
+             Statement statement = connection.createStatement()) {
+
+            ResultSet resultSet = statement.executeQuery("SELECT versionNumber FROM Version");
+            if (resultSet.next()) {
+                versionNumber = resultSet.getInt("versionNumber");
+
+            }
+
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return versionNumber;
     }
 }

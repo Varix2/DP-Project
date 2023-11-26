@@ -89,26 +89,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             System.out.println("Registry provavelmente ja' em execucao!");
         }
 
-        /*
-            Servicio Database
-         */
-        DbOperations dbService = null;
-        try {
-            dbService = new DbOperations(localDbPath);
-            System.out.println("Servico <<dbService>> criado e em execucao...");
-            // Registra la instancia en el registro RMI
-            Naming.rebind(servicioRMIDatabase, dbService);
 
-            //Check if db exists
-            File db = new File(localDbPath);
-            if(!db.exists()){
-                System.out.println("The db doesn´t exist. Creating...");
-                dbService.createDB();
-            }
-            System.out.println("Connection established with database");
-        } catch (RemoteException | MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
 
 
 
@@ -129,6 +110,27 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         }catch(Exception e){
             System.out.println("Erro - " + e);
             System.exit(1);
+        }
+
+        /*
+            Servicio Database
+         */
+        DbOperations dbService = null;
+        try {
+            dbService = new DbOperations(localDbPath);
+            System.out.println("Servico <<dbService>> criado e em execucao...");
+            // Registra la instancia en el registro RMI
+            Naming.rebind(servicioRMIDatabase, dbService);
+
+            //Check if db exists
+            File db = new File(localDbPath);
+            if(!db.exists()){
+                System.out.println("The db doesn´t exist. Creating...");
+                dbService.createDB();
+            }
+            System.out.println("Connection established with database");
+        } catch (RemoteException | MalformedURLException e) {
+            throw new RuntimeException(e);
         }
 
         /*
@@ -163,14 +165,14 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
     }
 
     @Override
-    public void pruebaRMI(String msg) throws RemoteException {
+    public void pruebaRMI(Heartbeat hb) throws RemoteException {
         int i;
 
         List<BackupServerInterface> backupServersToRemove = new ArrayList<>();
 
         for(BackupServerInterface backupServer:backupServers){
             try{
-                backupServer.notifyNewOperation(msg);
+                backupServer.notifyNewOperation(hb);
             }catch (RemoteException e){
                 backupServersToRemove.add(backupServer);
                 System.out.println("- um observador (observador inaccesivel)");

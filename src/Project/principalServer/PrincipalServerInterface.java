@@ -7,7 +7,7 @@ import java.rmi.RemoteException;
 
 public interface PrincipalServerInterface extends Remote {
 
-    void pruebaRMI(String msg)throws RemoteException;
+    void pruebaRMI(Heartbeat hb)throws RemoteException;
     byte[] transferDatabase() throws  RemoteException;
 
     void addBackupServer(BackupServerInterface observer)throws RemoteException;

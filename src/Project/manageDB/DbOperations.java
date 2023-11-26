@@ -1,5 +1,11 @@
 package Project.manageDB;
 
+import Project.principalServer.Heartbeat;
+import Project.principalServer.PrincipalServerInterface;
+
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
@@ -9,7 +15,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DbOperations extends UnicastRemoteObject implements DbOperationsInterface {
-    
+
+    String objUrl = "rmi://localhost:4444/p1";
+    PrincipalServerInterface  serverService;
+    {
+        try {
+            serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
+        } catch (NotBoundException e) {
+            throw new RuntimeException(e);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static String dbUrl;
     public DbOperations(String url)throws RemoteException {
         dbUrl = url;
@@ -53,9 +71,13 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                 }
             }
             updateVersion();
+            serverService.pruebaRMI(new Heartbeat(4444,"p1",getDbVersion()));
+
 
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
         }
         return insertState;
     }
