@@ -54,7 +54,7 @@ public class TextUI {
                         out.flush();
                         Boolean authState = (Boolean) oin.readObject();
                         if (!authState) {
-                            throw new AuthenticationErrorException("Email or password wrong");
+                            throw new AuthenticationErrorException("Authentication unsuccessful. Please check your credentials.");
                         }
                         if (dbOperations.isAdmin(ca.getEmail())) {
                             int option;
@@ -73,7 +73,7 @@ public class TextUI {
         } catch (SocketException e) {
             System.err.println("Error: " + e);
         } catch (NumberFormatException e) {
-            System.err.println("You must write a number ");
+            System.err.println("Wrong datatype inserted.");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -100,7 +100,7 @@ public class TextUI {
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NumberFormatException e){
-            System.err.println("The identification only accepts numbers ");
+            System.err.println("The identification only accepts numbers.");
         }
         return new ClientRegistryData(name, id,email, passwd);
     }
@@ -122,7 +122,7 @@ public class TextUI {
                 option = Integer.parseInt(reader.readLine());
 
                 if (option < 1 || option > 3) {
-                    System.out.println("ENTER A VALID OPTION");
+                    System.out.println("You selected an invalid option.");
                 }
             } while (option < 1 || option > 3);
 
@@ -208,7 +208,7 @@ public class TextUI {
                         System.out.println("Exiting...");
                         break;
                     default:
-                        System.out.println("ENTER A VALID OPTION");
+                        System.out.println("Invalid option inserted.");
                         break;
                 }
             } while (option != 5);

@@ -70,7 +70,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                 System.out.println("INSERT OPERATION COMPLETED. <<JUST FOR DEBUG>>");
 
                 if (insertState < 1) {
-                    System.out.println("Insertion failed");
+                    System.out.println("Insertion failed.");
                 }
             }
             updateVersion();
@@ -248,7 +248,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                 pstmt.setString(4, oldEmail);
 
                 int rowsUpdated = pstmt.executeUpdate();
-                System.out.println("UPDATE OPERATION COMPLETED. <<JUST FOR DEBUG>>");
+                System.out.println("Update completed successfully.");
                 // Check if any rows were updated
                 if (rowsUpdated > 0) {
                     System.out.println("User data updated successfully.");
@@ -305,7 +305,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     }
                 }
             } else {
-                System.out.println("Event can not be removed. ttendees registered.");
+                System.out.println("Event can not be removed. Attendees already registered.");
             }
         updateVersion();
         } catch (SQLException e) {
@@ -406,7 +406,7 @@ public class DbOperations extends UnicastRemoteObject implements DbOperationsInt
                     }
                 }
             } else {
-                System.out.println("Event cannot be edited. There are registered attendees.");
+                System.out.println("Event cannot be edited. There are registered attendees already.");
             }
             updateVersion();
         } catch (SQLException e) {

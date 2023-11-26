@@ -51,7 +51,7 @@ public class MulticastService implements Runnable{
                 socket.send(packet);
 
                 System.out.println("Heardbeat message sent.");
-                System.out.println("Current db version: " + versionNumber);
+                System.out.println("Current database version: " + versionNumber);
 
                 Thread.sleep(10000);
 

@@ -36,11 +36,11 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
 
         if(args.length != 4){
-            System.out.println("Deve passar na linha de comando: "
-                    + "(0) um porto de escuta TCP, onde irá aguardar pela conexão de clientes "
-                    + "(1) o caminho da diretoria de armazenamento da sua base de dados SQLite"
-                    + "(2) o nome com o qual deve registar um serviço RMI"
-                    + "(3) o porto de escuta no qual deve lançar o registry local"
+            System.out.println("You must pass on the command line : "
+                    + "(0) a TCP listening port, which will wait for the connecting clients "
+                    + "(1) the storage directory path of your SQLite database "
+                    + "(2) the name under which you must register an RMI service"
+                    + "(3) the listening port on which to launch the local registry."
             );
             System.out.println();
             return;
@@ -55,16 +55,16 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
 
         if(!dbDirectory.exists()){
-            System.out.println("A directoria " + dbDirectory + " nao existe!");
+            System.out.println("The directory " + dbDirectory + " does not exist!");
             return;
         }
 
         if(!dbDirectory.isDirectory()){
-            System.out.println("O caminho " + dbDirectory + " nao se refere a uma directoria!");
+            System.out.println("The path " + dbDirectory + " does not refer to a directory!");
             return;
         }
         if(!dbDirectory.canWrite()){
-            System.out.println("Sem permissoes de escrita na directoria " + dbDirectory);
+            System.out.println("No writing permissions for the directory " + dbDirectory);
             return;
         }
         try{
@@ -78,16 +78,16 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
          */
         try{
 
-            System.out.println("Tentativa de lancamento do registry no porto " +
+            System.out.println("Attempting to launch the registry in port " +
                     registryPort + "...");
 
             LocateRegistry.createRegistry(registryPort);
             LocateRegistry.createRegistry(2000);
 
-            System.out.println("Registry lancado!");
+            System.out.println("Registry launched!");
 
         }catch(RemoteException e){
-            System.out.println("Registry provavelmente ja' em execucao!");
+            System.out.println("Registry probably already running!");
         }
 
 
