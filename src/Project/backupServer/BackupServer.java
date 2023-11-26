@@ -89,12 +89,12 @@ public class BackupServer extends UnicastRemoteObject implements HeardbeatObserv
         try {
             filePath = new File(localDirectory.getPath() + File.separator + fileName).getCanonicalPath();
             try (FileOutputStream fout = new FileOutputStream(filePath)) {
-                System.out.println("BACKUP FILE " + filePath + " CREATED.");
+                System.out.println("Backup file " + filePath + " created.");
 
                 byte[] dbBackupFile = serverService.transferDatabase();
                 fout.write(dbBackupFile);
 
-                System.out.println("BACKUP (" + fileName + ") TRANSFER COMPLETE.");
+                System.out.println("Backup (" + fileName + ") transfer completed.");
             }
             System.out.println("Backup made successfully");
         } catch (IOException e) {
