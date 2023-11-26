@@ -99,17 +99,17 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
          */
         try {
             PrincipalServer serverService = new PrincipalServer();
-            System.out.println("Servico <<serverService>> criado e em execucao...");
+            System.out.println("Service <<serverService>> created and executed...");
 
             Naming.bind(servicioRMI, serverService);
 
-            System.out.println("Servico " + args[2] + " registado no registry...");
+            System.out.println("Service " + args[2] + " registered...");
 
         }catch(RemoteException e){
-            System.out.println("Erro remoto - " + e);
+            System.out.println("Remote error - " + e);
             System.exit(1);
         }catch(Exception e){
-            System.out.println("Erro - " + e);
+            System.out.println("Error - " + e);
             System.exit(1);
         }
 
@@ -119,14 +119,14 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         DbOperations dbService = null;
         try {
             dbService = new DbOperations(localDbPath);
-            System.out.println("Servico <<dbService>> criado e em execucao...");
+            System.out.println("Service <<dbService>> created and executed...");
             // Registra la instancia en el registro RMI
             Naming.rebind(servicioRMIDatabase, dbService);
 
             //Check if db exists
             File db = new File(localDbPath);
             if(!db.exists()){
-                System.out.println("The db doesn´t exist. Creating...");
+                System.out.println("The db does not exist. Creating...");
                 dbService.createDB();
             }
             System.out.println("Connection established with database");
@@ -156,7 +156,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             while(true) {
                 toClient = psSocket.accept();
 
-                tcp = new Thread(new TCPService(toClient,servicioRMI, localDbPath), "Cliente"+ ++i);
+                tcp = new Thread(new TCPService(toClient,servicioRMI, localDbPath), "Client"+ ++i);
                 tcp.start();
 
             }

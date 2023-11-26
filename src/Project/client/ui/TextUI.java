@@ -316,7 +316,7 @@ public class TextUI {
     }
 
     private void eventsDisplay(List<Event> events){
-        System.out.println("Tabla de Eventos:");
+        System.out.println("Events table:");
         System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME", "ASSISTANCE");
         System.out.println("------------------------------------------------------------------------------------------");
 
