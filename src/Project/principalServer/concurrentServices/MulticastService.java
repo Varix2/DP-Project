@@ -12,13 +12,13 @@ public class MulticastService implements Runnable{
 
     private DbOperations dbOperations;
     private int registryPort;
-    private String servicioRMI;
+    private String rmiName;
     MulticastSocket socket;
 
-    public MulticastService(int registryPort, String servicioRMI,DbOperations dbOperations){
+    public MulticastService(int registryPort, String rmiName,DbOperations dbOperations){
         this.dbOperations = dbOperations;
         this.registryPort = registryPort;
-        this.servicioRMI = servicioRMI;
+        this.rmiName = rmiName;
         try {
             socket = new MulticastSocket();
         } catch (IOException e) {
@@ -45,13 +45,10 @@ public class MulticastService implements Runnable{
             try(ByteArrayOutputStream buff = new ByteArrayOutputStream();
                 ObjectOutputStream out = new ObjectOutputStream(buff)) {
                 int versionNumber = dbOperations.getDbVersion();
-                out.writeObject(new Heardbeat(registryPort,servicioRMI, versionNumber));
+                out.writeObject(new Heardbeat(registryPort,rmiName, versionNumber));
 
                 packet = new DatagramPacket(buff.toByteArray(), buff.size(), multicastGroup, MULTICAST_PORT);
                 socket.send(packet);
-
-                System.out.println("Heardbeat message sent.");
-                System.out.println("Current database version: " + versionNumber);
 
                 Thread.sleep(10000);
 

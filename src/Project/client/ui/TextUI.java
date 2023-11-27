@@ -15,6 +15,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Scanner;
 
 public class TextUI {
     private final DbOperationsInterface dbOperations;
@@ -38,10 +39,12 @@ public class TextUI {
                 ObjectInputStream oin = new ObjectInputStream(socket.getInputStream());
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream()))
         {
-            //socket.setSoTimeout(TIMEOUT * 1000);
             int opcionMainMenu;
-            int optionProfile;
-            //adminMenu.showProfile();
+            System.out.println("########################");
+            System.out.println("CREDENTIALS FOR ADMIN:\n" +
+                    "Email: admin@example.com\n" +
+                    "Password: 123");
+            System.out.println("########################");
             do {
                 opcionMainMenu = mainMenu();
                 try {
@@ -49,7 +52,7 @@ public class TextUI {
                         ClientRegistryData cr = showRegistryMenu();
                         sendAndReceive(out, oin, cr);
                     } else if (opcionMainMenu == 2) {
-                        ClientAuthenticationData ca = showLoginMenu();
+                        ClientAuthenticationData ca = showSignUpMenu();
                         out.writeObject(ca);
                         out.flush();
                         Boolean authState = (Boolean) oin.readObject();
@@ -60,7 +63,7 @@ public class TextUI {
                             int option;
                             do {
                                 option = adminMenus.showProfile();
-                            } while (option != 12);
+                            } while (option != 11);
                         } else {
                             showProfile(ca.getEmail());
                         }
@@ -73,7 +76,7 @@ public class TextUI {
         } catch (SocketException e) {
             System.err.println("Error: " + e);
         } catch (NumberFormatException e) {
-            System.err.println("Wrong datatype inserted.");
+            System.err.println("Unexpected value passed by keyboard");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -82,6 +85,7 @@ public class TextUI {
     }
 
     public ClientRegistryData showRegistryMenu() {
+        clearConsole();
         String name = null, email = null, passwd = null;
         int id = 0;
 
@@ -110,7 +114,7 @@ public class TextUI {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             int option;
-            System.out.println("\n********************");
+            System.out.println("----------------------------");
             System.out.println("Main Menu");
             System.out.println("1. Login");
             System.out.println("2. Sign up");
@@ -133,10 +137,12 @@ public class TextUI {
         }
     }
 
-    public ClientAuthenticationData showLoginMenu() {
+    public ClientAuthenticationData showSignUpMenu() {
+        clearConsole();
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
+            System.out.println("Sign Up");
+            System.out.println("----------------------------");
             System.out.print("Email: ");
             String email = reader.readLine();
             System.out.print("Password: ");
@@ -154,32 +160,28 @@ public class TextUI {
         String[] userData = dbOperations.getUserData(email);
 
         if (userData != null) {
-            System.out.println("\nUser Profile:");
-            System.out.println("--------------------------------------");
-            System.out.println("Username: " + userData[0]);
-            //System.out.println("Identification: " + userData[1]);
-            System.out.println("Email: " + userData[1]);
+            System.out.println("User Profile:");
+            System.out.println("----------------------------");
+            System.out.println("Identification: " + userData[0]);
+            System.out.println("Name: " + userData[1]);
+            System.out.println("Email: " + userData[2]);
+            System.out.println("----------------------------");
 
-            System.out.println("<Enter> to go back to your profile");
-            System.out.println();
-            try {
-                System.in.read();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            System.out.println("User not found.");
+            waitToUser();
         }
     }
 
 
     public void showProfile(String email) {
+
         int option;
         String userEmail = email;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             do {
-                System.out.println("\nWelcome " + userEmail);
+                clearConsole();
+                System.out.println("User " + userEmail);
+                System.out.println("----------------------------");
                 System.out.println("1. See your data");
                 System.out.println("2. Edit your data");
                 System.out.println("3. Register for an event");
@@ -219,25 +221,24 @@ public class TextUI {
 
 
     private void consultYourEvents(String email) {
+        clearConsole();
         List<Event> events;
         try {
             events = dbOperations.getUserEvents(email);
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
-
-        eventsDisplay(events);
-
-        System.out.println("<Enter> to go back to your profile");
-        System.out.println();
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if(events.isEmpty()){
+            System.out.println("There is no event at this moment");
+        }else{
+            eventsDisplay(events);
         }
+
+        waitToUser();
     }
 
     private String editUserData(String email) {
+        clearConsole();
         String newName, newEmail, newPassword;
         int newID;
         try {
@@ -271,6 +272,7 @@ public class TextUI {
     }
 
     public void registerForEvent(String email) {
+        clearConsole();
         List<Event> events;
         try {
             events = dbOperations.getAllEvents();
@@ -279,40 +281,38 @@ public class TextUI {
         }
         if(events.isEmpty()){
             System.out.println("No events available ");
-        } else{
+        } else {
             eventsDisplay(events);
-        }
-        int option;
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-            System.out.println("1. Join an event:");
-            System.out.println("2. Go back to menu");
-            do {
-                System.out.println("----------------------------");
-                System.out.print("Choose an option: ");
+            int option;
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-                option = Integer.parseInt(reader.readLine());
+                System.out.println("1. Join an event:");
+                System.out.println("2. Go back to menu");
+                do {
+                    System.out.println("----------------------------");
+                    System.out.print("Choose an option: ");
 
-                if (option < 1 || option > 2) {
-                    System.out.println("ENTER A VALID OPTION");
+                    option = Integer.parseInt(reader.readLine());
+
+                    if (option < 1 || option > 2) {
+                        System.out.println("ENTER A VALID OPTION");
+                    }
+                } while (option < 1 || option > 2);
+                if (option == 1) {
+                    System.out.println("Select the ID of the event you want to join: ");
+                    int eventID = Integer.parseInt(reader.readLine());
+                    dbOperations.joinAnEvent(email, eventID);
+
+
                 }
-            } while (option < 1 || option > 2);
-            if(option == 1){
-                System.out.println("Select the ID of the event you want to join: ");
-                int eventID = Integer.parseInt(reader.readLine());
-                dbOperations.joinAnEvent(email,eventID);
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
-        System.out.println("<Enter> to go back to your profile");
-        System.out.println();
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        waitToUser();
     }
 
     private void eventsDisplay(List<Event> events){
@@ -325,6 +325,7 @@ public class TextUI {
                     event.getId(), event.getName(), event.getLocation(),
                     event.getData(), event.getStartTime(), event.getEndTime(), event.getttendees());
         }
+        System.out.println("------------------------------------------------------------------------------------------\n");
     }
 
     private static void sendAndReceive(ObjectOutputStream out, ObjectInputStream oin, Object obj)
@@ -342,7 +343,14 @@ public class TextUI {
         try {
             new ProcessBuilder("clear").inheritIO().start().waitFor();
         } catch (Exception e) {
-            /*No hacer nada*/
+        }
+    }
+    private void waitToUser() {
+        System.out.println("\nPress Enter to go back");
+        try {
+            new Scanner(System.in).nextLine();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -20,10 +20,12 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
     Socket s;
     String dbUrl;
     final List<HeardbeatObserversInterface> observers;
+    final List<HeardbeatObserversInterface> backupObservers;
     private static String localDbPath;
 
     public PrincipalServer()throws RemoteException{
         this.observers = new ArrayList<>();
+        this.backupObservers = new ArrayList<>();
 
     }
     public static void main(String[] args){
@@ -33,6 +35,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         File dbDirectory;
         int registryPort;
         String servicioRMI,servicioRMIDatabase;
+        String RMIname;
 
 
         if(args.length != 4){
@@ -50,7 +53,8 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         listeningPort = Integer.parseInt(args[0]);
         dbDirectory = new File(args[1]);
         registryPort = Integer.parseInt(args[3]);
-        servicioRMI ="rmi://localhost:" + registryPort + "/" + args[2];
+        RMIname = args[2];
+        servicioRMI ="rmi://localhost:" + registryPort + "/" + RMIname;
         servicioRMIDatabase = "rmi://localhost:2000/DB-service";
 
 
@@ -101,7 +105,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             PrincipalServer serverService = new PrincipalServer();
             System.out.println("Service <<serverService>> created and executed...");
 
-            Naming.bind(servicioRMI, serverService);
+            Naming.rebind(servicioRMI, serverService);
 
             System.out.println("Service " + args[2] + " registered...");
 
@@ -118,9 +122,8 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
          */
         DbOperations dbService = null;
         try {
-            dbService = new DbOperations(localDbPath);
+            dbService = new DbOperations(localDbPath,registryPort,RMIname);
             System.out.println("Service <<dbService>> created and executed...");
-            // Registra la instancia en el registro RMI
             Naming.rebind(servicioRMIDatabase, dbService);
 
             //Check if db exists
@@ -143,7 +146,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
-        mcThread = new Thread(new MulticastService(registryPort,servicioRMI,dbService));
+        mcThread = new Thread(new MulticastService(registryPort,RMIname,dbService));
         mcThread.start();
 
         /*
@@ -156,7 +159,7 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             while(true) {
                 toClient = psSocket.accept();
 
-                tcp = new Thread(new TCPService(toClient,servicioRMI, localDbPath), "Client"+ ++i);
+                tcp = new Thread(new TCPService(toClient,servicioRMI, localDbPath,registryPort,RMIname), "Client"+ ++i);
                 tcp.start();
 
             }
@@ -166,25 +169,12 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
 
     }
 
-    @Override
-    public void pruebaRMI(Heardbeat hb) throws RemoteException {
-        int i;
-
-        List<HeardbeatObserversInterface> backupServersToRemove = new ArrayList<>();
-
-        for(HeardbeatObserversInterface backupServer:observers){
-            try{
-                backupServer.notifyNewOperation(hb);
-            }catch (RemoteException e){
-                backupServersToRemove.add(backupServer);
-                System.out.println("- um observador (observador inaccesivel)");
-            }
+    /*@Override
+    public void pruebaRMI(Heardbeat hb,String msg) throws RemoteException {
+        for (TCPService c : TCPService.clients) {
+            c.notifyForUpdate(msg);
         }
-
-        synchronized (observers){
-            observers.removeAll(backupServersToRemove);
-        }
-    }
+    }*/
 
     @Override
     public synchronized byte[] transferDatabase() throws RemoteException {
@@ -216,7 +206,6 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             }
         }
     }
-
     @Override
     public void removeObserver(HeardbeatObserversInterface observer) throws RemoteException {
         synchronized (observers){
@@ -225,4 +214,21 @@ public class PrincipalServer extends UnicastRemoteObject implements PrincipalSer
             }
         }
     }
+    public void addBackupObserver(HeardbeatObserversInterface buObserver) throws RemoteException {
+        synchronized (backupObservers){
+            if(!backupObservers.contains(buObserver)) {
+                backupObservers.add(buObserver);
+                System.out.println("+ um backup server <<observador>>");
+            }
+        }
+    }
+    public void removeBackupObserver(HeardbeatObserversInterface buObserver) throws RemoteException {
+        synchronized (backupObservers){
+            if(backupObservers.remove(buObserver)){
+                System.out.println("- um backup server <<observador>>");
+            }
+        }
+    }
+
+
 }

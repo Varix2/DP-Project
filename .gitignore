@@ -29,3 +29,25 @@ bin/
 .DS_Store
 
 /backupFile.db
+/src/Project/client/ui/AdminMenus.class
+/src/Project/manageDB/data/Attendance.class
+/attendance.csv
+/src/Project/client/exceptions/AuthenticationErrorException.class
+/src/Project/backupServer/BackupServer.class
+/src/Project/client/Client.class
+/src/Project/client/data/ClientAuthenticationData.class
+/src/Project/client/data/ClientRegistryData.class
+/src/Project/manageDB/DbOperations.class
+/src/Project/manageDB/DbOperationsInterface.class
+/email-Events.csv
+/src/Project/manageDB/data/Event.class
+/src/Project/principalServer/data/Heardbeat.class
+/src/Project/principalServer/HeardbeatObserversInterface.class
+/src/Project/principalServer/concurrentServices/MulticastService.class
+/null
+/src/Project/principalServer/PrincipalServer.class
+/src/Project/principalServer/PrincipalServerInterface.class
+/run_backup_server.bat
+/run_principal_server (1).bat
+/src/Project/principalServer/concurrentServices/TCPService.class
+/src/Project/client/ui/TextUI.class

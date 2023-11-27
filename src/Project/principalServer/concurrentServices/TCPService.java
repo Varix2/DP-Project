@@ -11,34 +11,64 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.Socket;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-public class TCPService implements Runnable{
+public class TCPService implements Runnable {
     public static int MAX_SIZE = 1000;
-    private Socket s;
-    private String dbUrl;
-    DatagramPacket pkt;
+    private final Socket s;
+    private final String dbUrl;
+    int rmiPort;
+    String RMIname;
     private final DbOperations dbOperations;
-    public TCPService(Socket s, String dbUrl, String localDbPath) throws RemoteException {
+    private final ObjectOutputStream out;
+    public static List<TCPService> clients = new ArrayList<>();
+    private static List<ObjectOutputStream> clientsOutput = new ArrayList<>();
+
+    public TCPService(Socket s, String dbUrl, String localDbPath,int rmiPort,String RMIname) throws RemoteException {
         this.dbUrl = dbUrl;
-        this.s=s;
-        this.dbOperations = new DbOperations(localDbPath);
+        this.RMIname = RMIname;
+        this.rmiPort = rmiPort;
+        clients.add(this);
+        this.s = s;
+        this.dbOperations = new DbOperations(localDbPath,rmiPort,RMIname);
+        try {
+            out = new ObjectOutputStream(s.getOutputStream());
+            clientsOutput.add(out);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
+
+    public synchronized void notifyForUpdate(String message) {
+        for (ObjectOutputStream clientOut : clientsOutput) {
+            try {
+                clientOut.writeObject(message);
+                clientOut.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     @Override
     public void run() {
+
 
         Object receivedMsg;
 
 
-        try (ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(s.getInputStream())) {
+        try (ObjectInputStream in = new ObjectInputStream(s.getInputStream())) {
 
             while (true) {
                 receivedMsg = in.readObject();
                 if (receivedMsg instanceof ClientRegistryData regisData) {
-                    System.out.println("Registration information arrive: " +
-                            regisData.getName() + " / " + regisData.getEmail() + " / " + regisData.getPassword());
+                    System.out.println("New registry: \n" +
+                            "Name: " +  regisData.getName() +"\n"+
+                            "Identification: " +  regisData.getId_number() +"\n"+
+                            "Email: " +  regisData.getEmail());
 
-                    //Insert the data from the client in the database
                     int insertState = dbOperations.insertNewUser(regisData.getName(), regisData.getId_number(), regisData.getEmail(), regisData.getPassword());
                     if (insertState == 1) {
                         out.writeObject("You correctly registered");
@@ -46,10 +76,9 @@ public class TCPService implements Runnable{
                         out.writeObject("Registration fail");
                     }
                     out.flush();
-                } else if(receivedMsg instanceof ClientAuthenticationData authData){
-                    System.out.println("Authentication information arrive: " +
-                            authData.getEmail() + " / " + authData.getPassword());
-                    boolean state =dbOperations.authenticateUser(authData.getEmail(), authData.getPassword());
+                } else if (receivedMsg instanceof ClientAuthenticationData authData) {
+                    System.out.println("The user: " + authData.getEmail() + "has logged in to the system");
+                    boolean state = dbOperations.authenticateUser(authData.getEmail(), authData.getPassword());
                     out.writeObject(state);
                     out.flush();
                 }
@@ -58,9 +87,23 @@ public class TCPService implements Runnable{
             throw new RuntimeException(e);
         } catch (AuthenticationErrorException e) {
             System.out.println(e);
-        }
+        } finally {
+
+            clients.remove(this);
+            clientsOutput.remove(out);
+            try {
+                if (out != null) {
+                    out.close();
+                }
+                if (s != null && !s.isClosed()) {
+                    s.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
 
         }
     }
+}
 

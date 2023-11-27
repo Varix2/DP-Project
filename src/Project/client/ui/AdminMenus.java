@@ -12,6 +12,7 @@ import java.rmi.RemoteException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Scanner;
 
 public class AdminMenus {
 
@@ -25,35 +26,35 @@ public class AdminMenus {
     }
 
     public int showProfile() {
+        clearConsole();
         int option;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
 
-            System.out.println("\n********************");
+            System.out.println("----------------------------");
             System.out.println("Main Menu");
             System.out.println("1. Create event");
             System.out.println("2. Edit event");
             System.out.println("3. Delete event");
             System.out.println("4. Consult events");
-            System.out.println("5. Generation of a code to record attendance at an event that is currently taking place.");
-            System.out.println("6. Consult attendance to an event");
-            System.out.println("7. Obtain a CSV file of the attendance (from last point)");
-            System.out.println("8. Consult specific user attendances");
-            System.out.println("9. Obtain a CSV file of user events");
-            System.out.println("10. Delete an attendance");
-            System.out.println("11. Create an attendance");
-            System.out.println("12. Exit");
+            System.out.println("5. Consult attendance to an event");
+            System.out.println("6. Obtain a CSV file of the attendance (from last point)");
+            System.out.println("7. Consult specific user attendances");
+            System.out.println("8. Obtain a CSV file of user events");
+            System.out.println("9. Delete an attendance");
+            System.out.println("10. Create an attendance");
+            System.out.println("11. Exit");
             do {
                 System.out.println("----------------------------");
                 System.out.print("Choose an option: ");
 
                 option = Integer.parseInt(reader.readLine());
 
-                if (option < 1 || option > 12) {
+                if (option < 1 || option > 11) {
                     System.out.println("ENTER A VALID OPTION");
                 }
-            } while (option < 1 || option > 12);
+            } while (option < 1 || option > 11);
 
             switch (option) {
                 case 1:
@@ -68,22 +69,22 @@ public class AdminMenus {
                 case 4:
                     consultEvents();
                     break;
-                case 6:
+                case 5:
                     consultEventAttendance();
                     break;
-                case 7:
+                case 6:
                     obtainCsvEventAttendance();
                     break;
-                case 8:
+                case 7:
                     consultUserEvents();
                     break;
-                case 9:
+                case 8:
                     obtainCsvUserEvents();
                     break;
-                case 10:
+                case 9:
                     deleteAttendance();
                     break;
-                case 11:
+                case 10:
                     addAttendance();
                     break;
             }
@@ -95,13 +96,15 @@ public class AdminMenus {
     }
 
     private void addAttendance() {
+
         String email;
         int eventId;
         boolean addState;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
+            clearConsole();
             System.out.println("To add an attendance enter the email of the user and the id event: ");
+            System.out.println("---------------------------------------------------");
             System.out.print("Email:");
             email = reader.readLine();
             System.out.print("Event id:");
@@ -112,13 +115,14 @@ public class AdminMenus {
                 throw new RuntimeException(e);
             }
             if (addState) {
-                System.out.println("User added to the event successfully.");
+                System.out.println("Successfully added.");
             } else {
-                System.out.println("Something went wrong, check if the user is already registered");
+                System.out.println("Something went wrong");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        waitToUser();
     }
 
     private void deleteAttendance() {
@@ -126,8 +130,9 @@ public class AdminMenus {
         int eventId, deleteState;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
+            clearConsole();
             System.out.println("To remove an attendance enter the email of the user and the id event: ");
+            System.out.println("---------------------------------------------------");
             System.out.print("Email:");
             email = reader.readLine();
             System.out.print("Event id:");
@@ -146,6 +151,7 @@ public class AdminMenus {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        waitToUser();
     }
 
 
@@ -155,8 +161,9 @@ public class AdminMenus {
         String [] userData;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
+            clearConsole();
             System.out.println("Enter the email of the user to download their events: ");
+            System.out.println("---------------------------------------------------");
             email = reader.readLine();
             System.out.println("Creating file for " + email + "...");
 
@@ -170,8 +177,8 @@ public class AdminMenus {
             throw new RuntimeException(e);
         }
         String projectDirectory = System.getProperty("user.dir");
-        System.out.println("The .csv file will be located at " + projectDirectory);
         String filePath = projectDirectory + File.separator + email + "-Events.csv";
+        System.out.println("The .csv file will be located at " + filePath);
 
         try (FileWriter writer = new FileWriter(filePath)) {
             //User data
@@ -191,15 +198,16 @@ public class AdminMenus {
         } catch (IOException e) {
             System.err.println("Error al generar el archivo CSV: " + e.getMessage());
         }
+        waitToUser();
     }
     private void consultUserEvents() {
         List<Attendance> attendance;
         String [] userData;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-            // Solicitar al usuario que ingrese el ID del evento para consultar la asistencia
+            clearConsole();
             System.out.println("Enter the email of the user to consult their events: ");
+            System.out.println("---------------------------------------------------");
             String email = reader.readLine();
             try {
                 userData = dbOperations.getUserData(email);
@@ -216,6 +224,7 @@ public class AdminMenus {
         } else {
            userEventsDisplay(userData,attendance);
         }
+        waitToUser();
 
     }
 
@@ -224,9 +233,9 @@ public class AdminMenus {
         List<Attendance> attendance;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-            // Solicitar al usuario que ingrese el ID del evento para consultar la asistencia
+            clearConsole();
             System.out.println("Enter the ID of the event you want to download the attendance: ");
+            System.out.println("---------------------------------------------------");
             int eventId = Integer.parseInt(reader.readLine());
             System.out.println("Creating file attendance for the event " + eventId + ":");
 
@@ -240,11 +249,10 @@ public class AdminMenus {
             throw new RuntimeException(e);
         }
         String projectDirectory = System.getProperty("user.dir");
-        System.out.println("The .csv file will be located at "+ projectDirectory);
         String filePath = projectDirectory + File.separator + "attendance.csv";
+        System.out.println("The .csv file will be located at "+ filePath);
         
         try (FileWriter writer = new FileWriter(filePath)) {
-            // Escribir encabezados en el archivo CSV
             writer.append(String.format("Designação;%s;\n" +
                             "Local;%s;\n" +
                             "Data;%s;\n" +
@@ -260,6 +268,7 @@ public class AdminMenus {
         } catch (IOException e) {
             System.err.println("Error al generar el archivo CSV: " + e.getMessage());
         }
+        waitToUser();
     }
 
     private void consultEventAttendance() {
@@ -267,9 +276,10 @@ public class AdminMenus {
         Event event;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-            // Solicitar al usuario que ingrese el ID del evento para consultar la asistencia
+            clearConsole();
+            getAllEvents();
             System.out.println("Enter the ID of the event to consult attendance: ");
+            System.out.println("---------------------------------------------------");
             int eventId = Integer.parseInt(reader.readLine());
             System.out.println("Attendance for Event ID " + eventId + ":");
 
@@ -288,6 +298,7 @@ public class AdminMenus {
         } else {
             attendanceDisplay(event,attendance);
         }
+        waitToUser();
 
     }
 
@@ -295,17 +306,15 @@ public class AdminMenus {
         int eventId;
         String newName, newLocation, newStartTime, newEndTime;
         LocalDate newDate;
-
+        getAllEvents();
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-            // Solicitar al usuario que ingrese el ID del evento que desea editar
+            clearConsole();
             System.out.println("Enter the ID of the event you want to edit: ");
+            System.out.println("---------------------------------------------------");
             eventId = Integer.parseInt(reader.readLine());
 
-            // Solicitar al usuario los nuevos valores para el evento
             System.out.print("New event name: ");
             newName = reader.readLine();
 
@@ -322,12 +331,11 @@ public class AdminMenus {
             newEndTime = reader.readLine();
 
             try {
-                // Llamar a la función remota para editar el evento
                 dbOperations.updateEvent(eventId, newName, newLocation, newDate, newStartTime, newEndTime);
             } catch (RemoteException e) {
                 throw new RuntimeException(e);
             }
-
+            waitToUser();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -338,17 +346,21 @@ public class AdminMenus {
 
     public void deleteEvent(){
         int eId;
+        getAllEvents();
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-            System.out.println("Select the id of the event you want to edit: ");
+            clearConsole();
+            System.out.println("Select the id of the event you want to delete: ");
+            System.out.println("---------------------------------------------------");
             eId = Integer.parseInt(reader.readLine());
+
 
             try {
                 dbOperations.deleteEvent(eId);
             } catch (RemoteException e) {
                 throw new RuntimeException(e);
             }
+            waitToUser();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -363,10 +375,10 @@ public class AdminMenus {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
+            clearConsole();
             System.out.println("Creating a new event:");
+            System.out.println("---------------------------------------------------");
 
-            // Prompt for new entries for the data the user wants to edit
             System.out.print("Event name: ");
             eName = reader.readLine();
 
@@ -389,46 +401,61 @@ public class AdminMenus {
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         }
+        waitToUser();
     }
 
     private void userEventsDisplay(String[]userData, List<Attendance> attendance){
         System.out.println("User:");
         System.out.format("%-5s%-10s%-15s\n", "ID", "NAME", "EMAIL");
-        System.out.println("---------------------------------------------------");
+        System.out.println("----------------------------------------------------------------------------------");
         System.out.format("%-5s%-10s%-15s\n",
                 userData[1], userData[0], userData[2]);
+        System.out.println("----------------------------------------------------------------------------------");
 
         System.out.println("\nEvents Table:");
         System.out.format("%-10s%-15s%-15s%-15s%-15s\n", "NAME", "LOCATION", "DATA", "START TIME", "END TIME");
-        System.out.println("---------------------------------------------------");
+        System.out.println("----------------------------------------------------------------------------------");
         for (Attendance event : attendance) {
             System.out.format("%-10s%-15s%-17s%-14s%-15s\n", event.getEventName(), event.getLocation(),
                     event.getDate(), event.getStartTime(), event.getEndTime());
         }
+        System.out.println("----------------------------------------------------------------------------------");
 
 
     }
     private void attendanceDisplay(Event event, List<Attendance> attendance) {
-        // Mostrar la tabla del evento
         System.out.println("Events Table:");
         System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME");
-        System.out.println("---------------------------------------------------");
+        System.out.println("----------------------------------------------------------------------------------");
         System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s\n", event.getId(), event.getName(), event.getLocation(),
                 event.getData(), event.getStartTime(), event.getEndTime());
+        System.out.println("----------------------------------------------------------------------------------");
 
-        // Mostrar la tabla de asistentes
         System.out.println("\nAttendance Table:");
         System.out.format("%-5s%-10s%-15s\n", "ID", "NAME", "EMAIL");
-        System.out.println("---------------------------------------------------");
+        System.out.println("----------------------------------------------------------------------------------");
 
-        // Mostrar los asistentes
         for (Attendance Attendee : attendance) {
             System.out.format("%-5d%-10s%-15s\n",
                     Attendee.getUserId(), Attendee.getUserName(), Attendee.getEmail());
         }
+        System.out.println("---------------------------------------------------");
     }
 
     public void consultEvents() {
+        List<Event> events;
+        clearConsole();
+        try {
+            events = dbOperations.getAllEvents();
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
+
+        eventsDisplay(events);
+        waitToUser();
+    }
+
+    private void getAllEvents(){
         List<Event> events;
         try {
             events = dbOperations.getAllEvents();
@@ -436,17 +463,10 @@ public class AdminMenus {
             throw new RuntimeException(e);
         }
         eventsDisplay(events);
-        System.out.println("<Enter> to go back to your profile");
-        System.out.println();
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void eventsDisplay(List<Event> events){
-        System.out.println("Tabla de Eventos:");
+        System.out.println("Events table:");
         System.out.format("%-5s%-10s%-15s%-15s%-15s%-15s%-15s\n", "ID", "NAME", "LOCATION", "DATA", "START TIME", "END TIME", "ASSISTANCE");
         System.out.println("------------------------------------------------------------------------------------------");
 
@@ -454,6 +474,21 @@ public class AdminMenus {
             System.out.format("%-5d%-10s%-15s%-17s%-14s%-15s%-17d\n",
                     event.getId(), event.getName(), event.getLocation(),
                     event.getData(), event.getStartTime(), event.getEndTime(), event.getttendees());
+        }
+        System.out.println("------------------------------------------------------------------------------------------");
+    }
+    private void clearConsole(){
+        try {
+            new ProcessBuilder("clear").inheritIO().start().waitFor();
+        } catch (Exception e) {
+        }
+    }
+    private void waitToUser() {
+        System.out.println("\nPress Enter to go back");
+        try {
+            new Scanner(System.in).nextLine();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -15,38 +15,35 @@ import java.sql.*;
 public class BackupServer extends UnicastRemoteObject implements HeardbeatObserversInterface {
     private static final String MULTICAST_ADDRESS = "230.44.44.44";
     private static final int MULTICAST_PORT = 4444;
-    static String objUrl = "rmi://localhost:4444/p1";
+    static String objUrl;
     static File localDirectory;
     static String filePath;
+    static PrincipalServerInterface serverService;
 
     protected BackupServer() throws RemoteException {
     }
 
     public static void main(String[] args) {
         Heardbeat heardbeat;
-        PrincipalServerInterface serverService;
-        /*
-            OPTAINING THE DATABASE BACKUP
-         */
-        try {
-            serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
-            localDirectory = new File(args[0]);
 
-            getDbBackup(localDirectory, serverService);
-        } catch (MalformedURLException | NotBoundException | RemoteException ex) {
-            throw new RuntimeException(ex);
+
+        if (args.length != 1) {
+            System.out.println("Deve passar na linha de comando: (0) o caminho da diretoria para\n" +
+                    "armazenamento da uma réplica da base de dados");
+            return;
         }
 
+            localDirectory = new File(args[0]);
 
 
         /*
             RMI CALLBACK
-         */
+
         try {
-            serverService.addObserver(new BackupServer());
+            serverService.addBackupObserver(new BackupServer());
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+        }*/
 
 
         try {
@@ -67,8 +64,11 @@ public class BackupServer extends UnicastRemoteObject implements HeardbeatObserv
                 try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(packet.getData(), 0, packet.getLength()))) {
 
                     heardbeat = (Heardbeat) in.readObject();
+                    objUrl = "rmi://localhost:"+heardbeat.getRegistryPort()+"/"+heardbeat.getRmiServicesName();
+                    serverService = (PrincipalServerInterface) Naming.lookup(objUrl);
+                    getDbBackup(localDirectory, serverService);
 
-                } catch (ClassNotFoundException e) {
+                } catch (ClassNotFoundException | NotBoundException e) {
                     throw new RuntimeException(e);
                 }
 
@@ -89,14 +89,13 @@ public class BackupServer extends UnicastRemoteObject implements HeardbeatObserv
         try {
             filePath = new File(localDirectory.getPath() + File.separator + fileName).getCanonicalPath();
             try (FileOutputStream fout = new FileOutputStream(filePath)) {
-                System.out.println("Backup file " + filePath + " created.");
+                //System.out.println("Backup file " + filePath + " created.");
 
                 byte[] dbBackupFile = serverService.transferDatabase();
                 fout.write(dbBackupFile);
 
-                System.out.println("Backup (" + fileName + ") transfer completed.");
+                System.out.println("Backup updated");
             }
-            System.out.println("Backup made successfully");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
